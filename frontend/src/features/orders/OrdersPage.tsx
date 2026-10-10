@@ -5,6 +5,8 @@ import { formatCm, formatDate } from "../../lib/format";
 import PageHeader from "../../components/ui/PageHeader";
 import Badge from "../../components/ui/Badge";
 import Skeleton from "../../components/ui/Skeleton";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 interface Order {
   id: string;
@@ -63,25 +65,57 @@ function formatStatus(status: string): string {
   return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function exportOrdersCSV(orders: Order[]) {
+  const header = ["Code", "Buyer", "Fabric Type", "Quantity (m)", "Due Date", "Status", "Created At"];
+  const rows = orders.map((o) => [
+    o.code,
+    o.buyer_name,
+    o.fabric_type_name ?? "",
+    (o.quantity_cm / 100).toFixed(2),
+    o.due_date,
+    formatStatus(o.status),
+    o.created_at?.slice(0, 10) ?? "",
+  ]);
+  const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `orders_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function OrdersPage() {
+  const { user } = useAuth();
+  const canManage = can(user?.role, "orders:write");
+  const isAccounts = user?.role === "accounts";
+
   const { data, isLoading, isError } = useQuery<OrdersResponse>({
     queryKey: ["orders"],
     queryFn: () => api.get("/orders?page=1&size=50"),
   });
 
+  const actionButton = canManage ? (
+    <Link
+      to="/app/orders/new"
+      className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+    >
+      New Order
+    </Link>
+  ) : isAccounts ? (
+    <button
+      onClick={() => data?.items && exportOrdersCSV(data.items)}
+      disabled={!data?.items?.length}
+      className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+    >
+      Export Excel
+    </button>
+  ) : null;
+
   return (
     <div className="p-6">
-      <PageHeader
-        title="Orders"
-        actions={
-          <Link
-            to="/app/orders/new"
-            className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            New Order
-          </Link>
-        }
-      />
+      <PageHeader title="Orders" actions={actionButton} />
 
       {isLoading && <Skeleton rows={8} />}
 

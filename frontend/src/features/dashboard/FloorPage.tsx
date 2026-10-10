@@ -46,7 +46,7 @@ export default function FloorPage() {
 
   return (
     <div className="p-6">
-      <PageHeader title="Ripple Floor" subtitle="Live machine status map" />
+      <PageHeader title="Production Floor" subtitle="Live machine status map" />
 
       {isLoading && <Skeleton rows={8} />}
       {error && (

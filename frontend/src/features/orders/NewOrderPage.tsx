@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import PageHeader from "../../components/ui/PageHeader";
 import Skeleton from "../../components/ui/Skeleton";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 interface Buyer { id: string; code: string; name: string }
 interface FabricType { id: string; code: string; name: string; default_price_paise_per_m: number }
 
 export default function NewOrderPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user && !can(user.role, "orders:write")) {
+      navigate("/app/orders", { replace: true });
+    }
+  }, [user, navigate]);
   const queryClient = useQueryClient();
   const { data: buyers, isLoading: bLoad } = useQuery({ queryKey: ["buyers"], queryFn: () => api.get<{ items: Buyer[] }>("/buyers") });
   const { data: fabrics, isLoading: fLoad } = useQuery({ queryKey: ["fabric-types"], queryFn: () => api.get<{ items: FabricType[] }>("/fabric-types") });
