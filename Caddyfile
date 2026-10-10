@@ -1,0 +1,28 @@
+{$SITE_ADDRESS}
+
+encode gzip
+
+handle /api/* {
+  reverse_proxy backend:8000
+}
+
+handle /api/v1/ws* {
+  reverse_proxy backend:8000
+}
+
+handle {
+  root * /srv/frontend
+  try_files {path} /index.html
+  file_server
+}
+
+header {
+  Referrer-Policy "strict-origin-when-cross-origin"
+  X-Content-Type-Options "nosniff"
+  X-Frame-Options "DENY"
+  # Relax CSP for dev; tighten in prod
+  Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' wss:; worker-src 'self' blob:"
+}
+
+# Uncomment for LAN TLS
+# tls internal

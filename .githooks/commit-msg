@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Strip AI co-author trailers from commit messages
+COMMIT_EDITMSG="$1"
+if [ -z "$COMMIT_EDITMSG" ]; then exit 0; fi
+
+# Remove any Co-Authored-By lines mentioning AI tools
+sed -i -E '/^[Cc]o-[Aa]uthored-[Bb]y:.*([Cc]laude|[Cc]odex|[Aa]nthropoic|[Oo]pen[Aa][Ii])/d' "$COMMIT_EDITMSG"
+# Remove "Generated with ..." lines
+sed -i -E '/^[Gg]enerated with .*[Cc]laude/d' "$COMMIT_EDITMSG"
+# Remove 🤖 lines
+sed -i '/🤖/d' "$COMMIT_EDITMSG"
+
+exit 0

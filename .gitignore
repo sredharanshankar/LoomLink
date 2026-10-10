@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.pem
+*.key
+htmlcov/
+coverage/
+.coverage
+
+# Node
+node_modules/
+.cache/
+*.local
+
+# Database
+*.db
+*.sqlite3
+
+# Build outputs
+frontend/dist/
+playwright-report/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Secrets / certs
+*.crt
+*.p12
