@@ -118,14 +118,30 @@ def event_to_dict(session: Session, row: RippleEvent, *, include_fixes: bool = T
         if include_fixes
         else []
     )
+    trigger_kind = getattr(row.trigger_kind, "value", row.trigger_kind) or ""
+    params = row.params or {}
+    severity = params.get("severity", "medium")
+    affected = row.affected_orders or []
+    affected_order_codes = [o.get("order_code", "") for o in affected if isinstance(o, dict)]
+    title_key = row.title_key or trigger_kind
+    machine = params.get("machine_code", "")
+    title = title_key.replace("ripple.", "").replace("_", " ").title()
+    if machine:
+        title = f"{machine} — {title}"
+    summary = f"Affected orders: {', '.join(affected_order_codes) if affected_order_codes else 'none'}"
     return {
         "id": row.id,
         "code": row.code,
+        "event_type": trigger_kind,
         "trigger_event_id": row.trigger_event_id,
-        "trigger_kind": getattr(row.trigger_kind, "value", row.trigger_kind),
+        "trigger_kind": trigger_kind,
+        "title": title,
         "title_key": row.title_key,
-        "params": row.params or {},
-        "affected_orders": row.affected_orders or [],
+        "summary": summary,
+        "severity": severity,
+        "params": params,
+        "affected_orders": affected,
+        "affected_order_codes": affected_order_codes,
         "at_risk_paise": row.at_risk_paise,
         "at_risk_breakdown": row.at_risk_breakdown or {},
         "status": getattr(row.status, "value", row.status),

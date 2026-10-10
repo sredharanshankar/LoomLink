@@ -46,9 +46,14 @@ class RippleEventOut(BaseModel):
     code: str
     trigger_event_id: int | None
     trigger_kind: str
+    event_type: str = ""
     title_key: str
+    title: str = ""
+    summary: str = ""
+    severity: str = "medium"
     params: dict[str, Any]
     affected_orders: list[dict[str, Any]]
+    affected_order_codes: list[str] = Field(default_factory=list)
     at_risk_paise: int
     at_risk_breakdown: dict[str, Any]
     status: str
