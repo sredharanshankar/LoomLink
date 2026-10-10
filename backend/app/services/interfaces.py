@@ -137,7 +137,9 @@ def get_order_health(session: Session, order_id: uuid.UUID) -> dict | None:
 
     Safe default until Lane B implements: returns None so callers handle absence.
     """
-    return None
+    from app.ripple_service.queries import get_order_health as ripple_get_order_health
+
+    return ripple_get_order_health(session, order_id)
 
 
 def get_orders_health(session: Session, order_ids: list[uuid.UUID]) -> dict[uuid.UUID, dict]:
@@ -145,7 +147,9 @@ def get_orders_health(session: Session, order_ids: list[uuid.UUID]) -> dict[uuid
 
     Safe default until Lane B implements: returns empty dict.
     """
-    return {}
+    from app.ripple_service.queries import get_orders_health as ripple_get_orders_health
+
+    return ripple_get_orders_health(session, order_ids)
 
 
 def get_open_ripple_count(session: Session) -> int:
@@ -153,7 +157,9 @@ def get_open_ripple_count(session: Session) -> int:
 
     Safe default until Lane B implements: returns 0.
     """
-    return 0
+    from app.ripple_service.queries import get_open_ripple_count as ripple_get_open_ripple_count
+
+    return ripple_get_open_ripple_count(session)
 
 
 def get_leak_today(session: Session) -> dict:
@@ -161,4 +167,6 @@ def get_leak_today(session: Session) -> dict:
 
     Safe default until Lane B implements: returns zero totals.
     """
-    return {"total_paise": 0, "by_category": {}}
+    from app.ripple_service.queries import get_leak_today as ripple_get_leak_today
+
+    return ripple_get_leak_today(session)
