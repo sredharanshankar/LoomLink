@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_db, require_permission
 import app.services.master_data as md
+import app.services.inventory as inv_svc
 
 router = APIRouter()
 
@@ -130,72 +131,150 @@ def update_yarn_type(
 
 
 # ---------------------------------------------------------------------------
-# Inventory operations — implemented in A-M2
+# Inventory operations
 # ---------------------------------------------------------------------------
 
 @router.get("/inventory/stock")
-def get_stock(user=Depends(require_permission("inventory.view"))):
-    raise NotImplementedError
+def get_stock(
+    user=Depends(require_permission("inventory.view")),
+    db=Depends(get_db),
+):
+    return {"items": inv_svc.get_stock_view(db)}
 
 
 @router.get("/inventory/batches")
-def list_batches(user=Depends(require_permission("inventory.view"))):
-    raise NotImplementedError
+def list_batches(
+    yarn_type_id: uuid.UUID | None = Query(None),
+    supplier_id: uuid.UUID | None = Query(None),
+    status: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    user=Depends(require_permission("inventory.view")),
+    db=Depends(get_db),
+):
+    filters = {
+        "page": page, "size": size,
+        "yarn_type_id": yarn_type_id,
+        "supplier_id": supplier_id,
+        "status": status,
+    }
+    items, total = inv_svc.get_batches(db, filters)
+    return {"items": items, "total": total, "page": page, "size": size}
 
 
 @router.get("/inventory/batches/{id}")
-def get_batch(id: str, user=Depends(require_permission("inventory.view"))):
-    raise NotImplementedError
+def get_batch(
+    id: uuid.UUID,
+    user=Depends(require_permission("inventory.view")),
+    db=Depends(get_db),
+):
+    return inv_svc.get_batch(db, id)
 
 
-@router.post("/inventory/receipts")
-def receive_stock(user=Depends(require_permission("inventory.receive"))):
-    raise NotImplementedError
+@router.post("/inventory/receipts", status_code=201)
+def receive_stock(
+    body: dict,
+    user=Depends(require_permission("inventory.receive")),
+    db=Depends(get_db),
+):
+    batch = inv_svc.receipt(db, body, user)
+    db.commit()
+    return inv_svc.get_batch(db, batch.id)
 
 
-@router.post("/inventory/issues")
-def issue_stock(user=Depends(require_permission("inventory.issue"))):
-    raise NotImplementedError
+@router.post("/inventory/issues", status_code=201)
+def issue_stock(
+    body: dict,
+    user=Depends(require_permission("inventory.issue")),
+    db=Depends(get_db),
+):
+    movement = inv_svc.issue(db, body, user)
+    db.commit()
+    return {"id": str(movement.id), "kind": movement.kind, "qty_g": movement.qty_g}
 
 
-@router.post("/inventory/returns")
-def return_stock(user=Depends(require_permission("inventory.issue"))):
-    raise NotImplementedError
+@router.post("/inventory/returns", status_code=201)
+def return_stock(
+    body: dict,
+    user=Depends(require_permission("inventory.issue")),
+    db=Depends(get_db),
+):
+    movement = inv_svc.return_yarn(db, body, user)
+    db.commit()
+    return {"id": str(movement.id), "kind": movement.kind, "qty_g": movement.qty_g}
 
 
-@router.post("/inventory/adjustments")
-def adjust_stock(user=Depends(require_permission("inventory.adjust"))):
-    raise NotImplementedError
+@router.post("/inventory/adjustments", status_code=201)
+def adjust_stock(
+    body: dict,
+    user=Depends(require_permission("inventory.adjust")),
+    db=Depends(get_db),
+):
+    movement = inv_svc.adjustment(db, body, user)
+    db.commit()
+    return {"id": str(movement.id), "kind": movement.kind, "qty_g": movement.qty_g}
 
 
 @router.get("/inventory/alerts")
-def inventory_alerts(user=Depends(require_permission("inventory.view"))):
-    raise NotImplementedError
+def inventory_alerts(
+    user=Depends(require_permission("inventory.view")),
+    db=Depends(get_db),
+):
+    return inv_svc.get_alerts(db)
 
 
 @router.get("/inventory/purchase-needs")
-def purchase_needs(user=Depends(require_permission("inventory.view"))):
-    raise NotImplementedError
+def purchase_needs(
+    user=Depends(require_permission("inventory.view")),
+    db=Depends(get_db),
+):
+    return {"items": inv_svc.get_purchase_needs(db)}
 
 
 @router.get("/purchase-orders")
-def list_pos(user=Depends(require_permission("purchasing.manage"))):
-    raise NotImplementedError
+def list_pos(
+    status: str | None = Query(None),
+    supplier_id: uuid.UUID | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    user=Depends(require_permission("purchasing.manage")),
+    db=Depends(get_db),
+):
+    filters = {"status": status, "supplier_id": supplier_id, "page": page, "size": size}
+    items, total = inv_svc.list_pos(db, filters)
+    return {"items": items, "total": total, "page": page, "size": size}
 
 
-@router.post("/purchase-orders")
-def create_po(user=Depends(require_permission("purchasing.manage"))):
-    raise NotImplementedError
+@router.post("/purchase-orders", status_code=201)
+def create_po(
+    body: dict,
+    user=Depends(require_permission("purchasing.manage")),
+    db=Depends(get_db),
+):
+    po, lines = inv_svc.create_po(db, body, user)
+    db.commit()
+    return inv_svc.get_po(db, po.id)
 
 
 @router.get("/purchase-orders/{id}")
-def get_po(id: str, user=Depends(require_permission("purchasing.manage"))):
-    raise NotImplementedError
+def get_po(
+    id: uuid.UUID,
+    user=Depends(require_permission("purchasing.manage")),
+    db=Depends(get_db),
+):
+    return inv_svc.get_po(db, id)
 
 
 @router.patch("/purchase-orders/{id}")
-def update_po(id: str, user=Depends(require_permission("purchasing.manage"))):
-    raise NotImplementedError
+def update_po(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("purchasing.manage")),
+    db=Depends(get_db),
+):
+    result = inv_svc.update_po(db, id, body, user)
+    db.commit()
+    return result
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import datetime as _dt
 from fastapi import APIRouter, Depends, Request, Response, Body
 from sqlalchemy.orm import Session
 from app.deps import get_db, require_permission
@@ -11,6 +12,12 @@ from app.core.ratelimit import rate_limit_login
 from app.core.time import now
 from app.schemas.auth import LoginRequest, PinLoginRequest, TokenResponse, RefreshRequest
 from sqlalchemy import text
+
+
+def _rt_exp() -> _dt.datetime:
+    from app.config import get_settings
+    days = get_settings().refresh_token_days
+    return (now() + _dt.timedelta(days=days)).replace(tzinfo=None)
 
 router = APIRouter()
 
@@ -40,13 +47,41 @@ def _get_user_by_employee_code(db: Session, code: str):
 
 
 @router.get("/me")
-def get_me(user=Depends(require_permission(""))):
-    raise NotImplementedError
+def get_me(user=Depends(require_permission("")), db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    row = db.execute(
+        text("SELECT id, employee_code, name, email, phone, role, preferred_language, is_active FROM users WHERE id = :uid"),
+        {"uid": user["id"]},
+    ).fetchone()
+    if not row:
+        raise AppError("NOT_FOUND", "User not found")
+    from app.core.rbac import ROLE_PERMISSIONS
+    return {
+        "id": str(row.id),
+        "employee_code": row.employee_code,
+        "name": row.name,
+        "email": row.email,
+        "phone": row.phone,
+        "role": row.role,
+        "preferred_language": row.preferred_language,
+        "is_active": row.is_active,
+        "permissions": list(ROLE_PERMISSIONS.get(row.role, set())),
+    }
 
 
 @router.patch("/me")
-def update_me(user=Depends(require_permission(""))):
-    raise NotImplementedError
+def update_me(body: dict = Body(default={}), user=Depends(require_permission("")), db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    allowed = {"name", "email", "phone", "preferred_language"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        raise AppError("VALIDATION_ERROR", "No updatable fields provided")
+    from app.core.time import now as _now
+    sets = ", ".join(f"{k} = :{k}" for k in updates)
+    updates["uid"] = user["id"]
+    updates["updated_at"] = _now().replace(tzinfo=None)
+    db.execute(text(f"UPDATE users SET {sets}, updated_at = :updated_at WHERE id = :uid"), updates)
+    return {"ok": True}
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -65,7 +100,7 @@ def login(body: LoginRequest, request: Request, response: Response, db: Session 
         {
             "uid": user.id,
             "th": hashed_rt,
-            "exp": now().replace(tzinfo=None),
+            "exp": _rt_exp(),
             "now": now().replace(tzinfo=None),
         },
     )
@@ -89,7 +124,7 @@ def pin_login(body: PinLoginRequest, request: Request, response: Response, db: S
         {
             "uid": user.id,
             "th": hashed_rt,
-            "exp": now().replace(tzinfo=None),
+            "exp": _rt_exp(),
             "now": now().replace(tzinfo=None),
         },
     )
@@ -132,7 +167,7 @@ def refresh(
         {
             "uid": row.user_id,
             "th": hashed_rt,
-            "exp": now().replace(tzinfo=None),
+            "exp": _rt_exp(),
             "now": now().replace(tzinfo=None),
         },
     )

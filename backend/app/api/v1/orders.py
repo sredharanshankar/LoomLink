@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_db, require_permission
 import app.services.master_data as md
+import app.services.orders as ord_svc
 
 router = APIRouter()
 
@@ -57,8 +58,13 @@ def update_buyer(
 
 
 @router.get("/buyers/{id}/outstanding")
-def buyer_outstanding(id: str, user=Depends(require_permission("finance.view"))):
-    raise NotImplementedError
+def buyer_outstanding(
+    id: uuid.UUID,
+    user=Depends(require_permission("finance.view")),
+    db=Depends(get_db),
+):
+    from app.services.finance import get_buyer_outstanding
+    return get_buyer_outstanding(db, id)
 
 
 # ---------------------------------------------------------------------------
@@ -136,52 +142,112 @@ def create_route_template(
 
 
 # ---------------------------------------------------------------------------
-# Orders — implemented in A-M3
+# Orders
 # ---------------------------------------------------------------------------
 
-@router.get("/orders")
-def list_orders(user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
-
-
-@router.post("/orders")
-def create_order(user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
+@router.post("/orders/feasibility")
+def check_feasibility(
+    body: dict,
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    fabric_type_id = uuid.UUID(str(body["fabric_type_id"]))
+    quantity_cm = int(body["quantity_cm"])
+    return ord_svc.feasibility(db, fabric_type_id, quantity_cm)
 
 
 @router.get("/orders/lookup")
-def lookup_orders(user=Depends(require_permission("orders.lookup"))):
-    raise NotImplementedError
+def lookup_orders(
+    q: str = Query(..., min_length=1),
+    user=Depends(require_permission("orders.lookup")),
+    db=Depends(get_db),
+):
+    return {"items": ord_svc.lookup_orders(db, q)}
+
+
+@router.get("/orders")
+def list_orders(
+    status: str | None = Query(None),
+    buyer_id: uuid.UUID | None = Query(None),
+    due_before: str | None = Query(None),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    filters = {
+        "status": status, "buyer_id": buyer_id,
+        "due_before": due_before, "q": q,
+        "page": page, "size": size,
+    }
+    items, total = ord_svc.list_orders(db, filters)
+    return {"items": items, "total": total, "page": page, "size": size}
+
+
+@router.post("/orders", status_code=201)
+def create_order(
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    order = ord_svc.create_order(db, body, user)
+    db.commit()
+    return ord_svc.get_order(db, order.id, user)
 
 
 @router.get("/orders/{id}")
-def get_order(id: str, user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
+def get_order(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    return ord_svc.get_order(db, id, user)
 
 
 @router.patch("/orders/{id}")
-def update_order(id: str, user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
-
-
-@router.post("/orders/feasibility")
-def check_feasibility(user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
+def update_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    result = ord_svc.update_order(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/orders/{id}/confirm")
-def confirm_order(id: str, user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
+def confirm_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    result = ord_svc.confirm_order(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/orders/{id}/cancel")
-def cancel_order(id: str, user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
+def cancel_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    result = ord_svc.cancel_order(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.get("/orders/{id}/timeline")
-def order_timeline(id: str, user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
+def order_timeline(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    return ord_svc.get_timeline(db, id)
 
 
 # ---------------------------------------------------------------------------
