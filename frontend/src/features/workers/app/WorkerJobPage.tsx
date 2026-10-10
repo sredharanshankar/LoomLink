@@ -40,7 +40,7 @@ export default function WorkerJobPage() {
   });
 
   const progressMutation = useMutation({
-    mutationFn: (metresCm: number) => api.post(`/jobs/${id}/progress`, { metres_cm: metresCm }),
+    mutationFn: (metresCm: number) => api.post(`/jobs/${id}/progress`, { delta_qty: metresCm }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["job", id] });
       setMetres("");
