@@ -295,6 +295,7 @@ def _sup_out(r) -> dict:
         "notes": r.notes,
         "is_active": r.is_active,
         "created_at": r.created_at.isoformat(),
+        "yarn_types_supplied": [],
     }
 
 
