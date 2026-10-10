@@ -113,6 +113,25 @@ export default function ProductionPage() {
     grid.set(`${m.floor_x},${m.floor_y}`, m);
   }
 
+  /* stage label per row: pick the most common stage in that row */
+  const rowStage = new Map<number, string>();
+  for (let y = 0; y <= maxY; y++) {
+    const stageCounts = new Map<string, number>();
+    for (const m of machines) {
+      if (m.floor_y === y) stageCounts.set(m.stage, (stageCounts.get(m.stage) ?? 0) + 1);
+    }
+    let best = ""; let bestN = 0;
+    stageCounts.forEach((n, s) => { if (n > bestN) { best = s; bestN = n; } });
+    if (best) rowStage.set(y, best);
+  }
+
+  const STAGE_COLORS: Record<string, string> = {
+    spinning:  "bg-violet-50",
+    weaving:   "bg-sky-50",
+    dyeing:    "bg-teal-50",
+    finishing: "bg-amber-50",
+  };
+
   /* build machine id -> code lookup for job table */
   const machineById = new Map<string, string>();
   for (const m of machines) {
@@ -158,67 +177,115 @@ export default function ProductionPage() {
         ) : machines.length === 0 ? (
           <p className="text-gray-400 text-center py-8">No machines configured</p>
         ) : (
-          <div
-            className="grid gap-3"
-            style={{
-              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-            }}
-          >
-            {Array.from({ length: rows }).map((_, y) =>
-              Array.from({ length: cols }).map((_, x) => {
-                const m = grid.get(`${x},${y}`);
-                if (!m) {
-                  return <div key={`${x},${y}`} className="min-h-[5rem]" />;
-                }
-                const s = statusStyle(m.status);
-                const progress = m.planned_qty > 0
-                  ? Math.min(100, Math.round((m.produced_qty / m.planned_qty) * 100))
-                  : 0;
-
-                return (
-                  <div
-                    key={m.id}
-                    className={clsx(
-                      "rounded-lg ring-1 p-3 min-h-[5rem] flex flex-col justify-between",
-                      s.bg,
-                      s.ring,
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={clsx("w-2 h-2 rounded-full shrink-0", s.dot)} />
-                      <span className="font-mono text-sm font-semibold text-gray-900 truncate">
-                        {m.code}
-                      </span>
+          <div className="overflow-x-auto">
+            <div className="flex gap-0 min-w-[520px]">
+              {/* Stage label sidebar */}
+              <div
+                className="flex flex-col shrink-0 mr-2"
+                style={{ gap: "0.75rem" }}
+              >
+                {Array.from({ length: rows }).map((_, y) => {
+                  const stage = rowStage.get(y) ?? "";
+                  return (
+                    <div
+                      key={y}
+                      className="flex items-center justify-end pr-1 min-h-[5.5rem]"
+                      style={{ minWidth: 72 }}
+                    >
+                      {stage && (
+                        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                          {stage}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-600 truncate mt-0.5">{m.name}</p>
+                  );
+                })}
+              </div>
 
-                    {m.status === "running" && m.current_job_code && (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500 truncate">
-                          Job {m.current_job_code}
-                          {m.current_order_code ? ` · ${m.current_order_code}` : ""}
-                        </p>
-                        <div className="mt-1 w-full bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-green-500 h-1.5 rounded-full transition-all"
-                            style={{ width: `${progress}%` }}
-                          />
+              {/* Grid */}
+              <div
+                className="flex-1 grid gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50"
+                style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: rows }).map((_, y) =>
+                  Array.from({ length: cols }).map((_, x) => {
+                    const m = grid.get(`${x},${y}`);
+                    const zoneBg = STAGE_COLORS[rowStage.get(y) ?? ""] ?? "";
+
+                    if (!m) {
+                      return (
+                        <div
+                          key={`${x},${y}`}
+                          className={clsx(
+                            "min-h-[5.5rem] rounded-lg border border-dashed border-gray-200",
+                            zoneBg || "bg-white/60",
+                          )}
+                        />
+                      );
+                    }
+
+                    const s = statusStyle(m.status);
+                    const progress = m.planned_qty > 0
+                      ? Math.min(100, Math.round((m.produced_qty / m.planned_qty) * 100))
+                      : 0;
+
+                    return (
+                      <div
+                        key={m.id}
+                        className={clsx(
+                          "rounded-lg ring-2 p-3 min-h-[5.5rem] flex flex-col justify-between shadow-sm",
+                          s.bg,
+                          s.ring,
+                        )}
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={clsx("w-2 h-2 rounded-full shrink-0", s.dot)} />
+                            <span className="font-mono text-sm font-bold text-gray-900 truncate">
+                              {m.code}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-500 truncate mt-0.5 ml-3.5">{m.name}</p>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5 text-right">
-                          {pct(m.produced_qty, m.planned_qty)}
-                        </p>
-                      </div>
-                    )}
 
-                    {m.status !== "running" && (
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">
-                        {m.status}
-                      </p>
-                    )}
+                        {m.status === "running" && m.current_job_code ? (
+                          <div className="mt-2">
+                            <p className="text-[11px] text-indigo-700 font-medium truncate">
+                              {m.current_job_code}
+                              {m.current_order_code ? ` · ${m.current_order_code}` : ""}
+                            </p>
+                            <div className="mt-1 w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className="bg-green-500 h-1.5 rounded-full transition-all"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-0.5 text-right">
+                              {pct(m.produced_qty, m.planned_qty)}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-gray-400 uppercase tracking-wide mt-1">
+                            {m.status}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }),
+                )}
+              </div>
+            </div>
+
+            {/* Stage zone legend */}
+            <div className="flex flex-wrap gap-3 mt-3 ml-20">
+              {Object.entries(STAGE_COLORS).map(([stage, bg]) => (
+                machines.some((m) => m.stage === stage) && (
+                  <div key={stage} className={clsx("flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium text-gray-600 border border-gray-200", bg)}>
+                    <span className="capitalize">{stage}</span>
                   </div>
-                );
-              }),
-            )}
+                )
+              ))}
+            </div>
           </div>
         )}
       </div>
