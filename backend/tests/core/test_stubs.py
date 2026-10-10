@@ -3,15 +3,12 @@ import pytest
 
 
 _STUB_ENDPOINTS = [
-    ("GET", "/api/v1/suppliers"),
-    ("GET", "/api/v1/yarn-types"),
+    # suppliers, yarn-types, machines, workers implemented in A-M1 (real CRUD)
     ("GET", "/api/v1/orders"),
     ("GET", "/api/v1/jobs"),
-    ("GET", "/api/v1/machines"),
     ("GET", "/api/v1/rolls"),
     ("GET", "/api/v1/inspections"),
     ("GET", "/api/v1/dispatches"),
-    ("GET", "/api/v1/workers"),
     ("GET", "/api/v1/invoices"),
     ("GET", "/api/v1/ripple"),
     ("GET", "/api/v1/ripple/idle-hunter"),

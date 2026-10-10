@@ -21,6 +21,7 @@ class Worker(Base):
     wage_rate_paise: Mapped[int] = mapped_column(BigInteger, nullable=False)
     piece_rate_paise_per_m: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     default_shift: Mapped[str] = mapped_column(String(1), default="A", nullable=False)
+    overtime_willing: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     joined_on: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     preferred_language: Mapped[str] = mapped_column(String(2), default="en", nullable=False)

@@ -66,6 +66,7 @@ class MillSettings(Base):
     health_amber_minutes: Mapped[int] = mapped_column(BigInteger, default=1440, nullable=False)
     ripple_slip_threshold_minutes: Mapped[int] = mapped_column(BigInteger, default=60, nullable=False)
     state_version: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    state_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
     gst_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
     address_line1: Mapped[str | None] = mapped_column(String(200), nullable=True)
     address_line2: Mapped[str | None] = mapped_column(String(200), nullable=True)

@@ -1,33 +1,89 @@
-from fastapi import APIRouter, Depends
-from app.deps import require_permission
+from __future__ import annotations
+import uuid
+from fastapi import APIRouter, Depends, Query
+
+from app.deps import get_db, require_permission
+import app.services.master_data as md
 
 router = APIRouter()
 
 
+# ---------------------------------------------------------------------------
+# Machines
+# ---------------------------------------------------------------------------
+
 @router.get("/machines")
-def list_machines(user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def list_machines(
+    stage: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    items, total = md.list_machines(db, stage=stage, page=page, size=size)
+    caps_map = {str(m.id): md.get_machine_capabilities(db, m.id) for m in items}
+    return {
+        "items": [_machine_out(m, caps_map.get(str(m.id), [])) for m in items],
+        "total": total, "page": page, "size": size,
+    }
 
 
-@router.post("/machines")
-def create_machine(user=Depends(require_permission("machines.manage"))):
-    raise NotImplementedError
+@router.post("/machines", status_code=201)
+def create_machine(
+    body: dict,
+    user=Depends(require_permission("machines.manage")),
+    db=Depends(get_db),
+):
+    machine = md.create_machine(db, body, user)
+    db.commit()
+    caps = md.get_machine_capabilities(db, machine.id)
+    return _machine_out(machine, caps)
 
 
 @router.get("/machines/{id}")
-def get_machine(id: str, user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def get_machine(
+    id: uuid.UUID,
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    machine = md.get_machine(db, id)
+    caps = md.get_machine_capabilities(db, id)
+    return _machine_out(machine, caps)
 
 
 @router.patch("/machines/{id}")
-def update_machine(id: str, user=Depends(require_permission("machines.manage"))):
-    raise NotImplementedError
+def update_machine(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("machines.manage")),
+    db=Depends(get_db),
+):
+    machine = md.update_machine(db, id, body, user)
+    db.commit()
+    caps = md.get_machine_capabilities(db, id)
+    return _machine_out(machine, caps)
 
 
 @router.get("/machines/{id}/events")
-def machine_events(id: str, user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def machine_events(
+    id: uuid.UUID,
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    from sqlalchemy import text
+    rows = db.execute(
+        text(
+            "SELECT kind, params, created_at FROM machine_events "
+            "WHERE machine_id = :mid ORDER BY created_at DESC LIMIT 100"
+        ),
+        {"mid": id},
+    ).fetchall()
+    return {"items": [{"kind": r[0], "params": r[1], "created_at": r[2].isoformat()} for r in rows]}
 
+
+# ---------------------------------------------------------------------------
+# Production floor / jobs — implemented in A-M4
+# ---------------------------------------------------------------------------
 
 @router.get("/production/floor")
 def floor_map(user=Depends(require_permission("production.view"))):
@@ -112,3 +168,22 @@ def machine_repaired(id: str, user=Depends(require_permission("production.operat
 @router.post("/machines/{id}/maintenance")
 def machine_maintenance(id: str, user=Depends(require_permission("machines.manage"))):
     raise NotImplementedError
+
+
+# ---------------------------------------------------------------------------
+# serializers
+# ---------------------------------------------------------------------------
+
+def _machine_out(m, caps) -> dict:
+    return {
+        "id": str(m.id),
+        "code": m.code,
+        "stage": m.stage,
+        "floor_x": m.floor_x,
+        "floor_y": m.floor_y,
+        "status": m.status,
+        "current_job_id": str(m.current_job_id) if m.current_job_id else None,
+        "notes": m.notes,
+        "fabric_type_ids": [str(c.fabric_type_id) for c in caps],
+        "created_at": m.created_at.isoformat(),
+    }
