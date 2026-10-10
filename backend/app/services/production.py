@@ -751,6 +751,17 @@ def get_job(session: Session, job_id: uuid.UUID) -> dict:
     """), {"jid": job_id}).fetchall()
 
     result = _job_out(job)
+    # enrich with order_code and machine_code for worker-facing UI
+    extra = session.execute(text("""
+        SELECT o.code AS order_code, m.code AS machine_code
+        FROM jobs j
+        LEFT JOIN orders o ON o.id = j.order_id
+        LEFT JOIN machines m ON m.id = j.machine_id
+        WHERE j.id = :jid
+    """), {"jid": job_id}).fetchone()
+    if extra:
+        result["order_code"] = extra.order_code
+        result["machine_code"] = extra.machine_code
     result["progress_logs"] = [
         {
             "delta_qty": p.delta_qty, "total_qty": p.total_qty,
