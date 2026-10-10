@@ -1,0 +1,48 @@
+import type { FabricType } from "./types";
+
+export const fabricTypes: FabricType[] = [
+  {
+    id: "fab-pop-blu",
+    code: "FAB-POP-BLU",
+    name: "Blue cotton poplin",
+    width_cm: 147,
+    gsm: 110,
+    yarn_type_id: "yt-cot-40s-blu",
+    yarn_per_100m_grams: 14300,
+    default_price_paise_per_m: 12500,
+    route_template_id: "rt-r1",
+  },
+  {
+    id: "fab-pop-gry",
+    code: "FAB-POP-GRY",
+    name: "Grey poplin",
+    width_cm: 147,
+    gsm: 105,
+    yarn_type_id: "yt-pc-240s-gry",
+    yarn_per_100m_grams: 13500,
+    default_price_paise_per_m: 9800,
+    route_template_id: "rt-r1",
+  },
+  {
+    id: "fab-sht-wht",
+    code: "FAB-SHT-WHT",
+    name: "White sheeting",
+    width_cm: 228,
+    gsm: 140,
+    yarn_type_id: "yt-cot-40s-wht",
+    yarn_per_100m_grams: 26000,
+    default_price_paise_per_m: 16000,
+    route_template_id: "rt-r1",
+  },
+  {
+    id: "fab-twl-nvy",
+    code: "FAB-TWL-NVY",
+    name: "Navy twill",
+    width_cm: 150,
+    gsm: 210,
+    yarn_type_id: "yt-cot-30s-nvy",
+    yarn_per_100m_grams: 27500,
+    default_price_paise_per_m: 18500,
+    route_template_id: "rt-r2",
+  },
+];
