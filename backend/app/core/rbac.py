@@ -137,7 +137,7 @@ def require_permission(*perms: str):
         role = user.get("role", "")
         if not any(has_permission(role, p) for p in perms):
             from app.core.errors import AppError
-            raise AppError("FORBIDDEN", f"Permission required: {' or '|'.join(perms)}")
+            raise AppError("FORBIDDEN", f"Permission required: {', '.join(perms)}")
         return user
     return _dep
 
