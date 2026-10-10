@@ -43,7 +43,8 @@ class AppError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
-        self.status = status or _STATUS_MAP.get(code, 400)
+        self.status_code = status or _STATUS_MAP.get(code, 400)
+        self.status = self.status_code  # alias for FastAPI response_model
         self.details = details or {}
 
 
