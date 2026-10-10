@@ -38,7 +38,7 @@ function SeverityBadge({ s }: { s: RippleEvent["severity"] }) {
 
 export default function RippleInboxPage() {
   const { t } = useTranslation();
-  const { data, isLoading } = useQuery<RippleEventList>({
+  const { data, isLoading, isError } = useQuery<RippleEventList>({
     queryKey: ["ripple-events"],
     queryFn: () => api.get("/ripple/events"),
     refetchInterval: 30_000,
@@ -57,7 +57,15 @@ export default function RippleInboxPage() {
         </div>
       )}
 
-      {!isLoading && !data?.items?.length && (
+      {!isLoading && isError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <AlertTriangle className="mx-auto h-8 w-8 text-red-400 mb-2" />
+          <p className="text-red-700 text-sm font-medium">Failed to load Ripple events.</p>
+          <p className="text-red-500 text-xs mt-1">Check your connection or contact your administrator.</p>
+        </div>
+      )}
+
+      {!isLoading && !isError && !data?.items?.length && (
         <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 p-10 text-center">
           <CheckCircle className="mx-auto h-10 w-10 text-green-400 mb-2" />
           <p className="text-gray-600 dark:text-gray-400">{t("ripple.noEvents", "No active events — mill is running smoothly.")}</p>

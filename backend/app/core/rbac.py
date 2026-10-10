@@ -58,6 +58,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dispatch.view",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "operator": {
         "scan.use",
@@ -67,6 +68,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "rolls.create",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "qc_inspector": {
         "scan.use", "labels.print",
@@ -76,6 +78,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dispatch.view",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "dispatch": {
         "scan.use",
@@ -87,6 +90,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dispatch.view", "dispatch.manage",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "accounts": {
         "settings.view",
@@ -103,6 +107,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dashboard.owner",
         "dispatch.view",
         "leak.view",
+        "ripple.view",
     },
     "buyer": {
         "buyer.own",
