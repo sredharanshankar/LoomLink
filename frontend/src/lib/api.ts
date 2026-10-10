@@ -18,21 +18,19 @@ let refreshPromise: Promise<string> | null = null;
 
 async function refreshTokens(): Promise<string> {
   const store = useAuthStore.getState();
-  const rt = store.refreshToken;
-  if (!rt) throw new ApiError("UNAUTHENTICATED", "No refresh token", 401);
-
+  // Backend sets httpOnly ll_refresh cookie; send it via credentials:'include'
   const res = await fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: rt }),
   });
   if (!res.ok) {
     store.logout();
     throw new ApiError("UNAUTHENTICATED", "Session expired", 401);
   }
   const data = await res.json();
-  store.setTokens(data.access_token, data.refresh_token);
-  return data.access_token;
+  store.setToken(data.access_token);
+  return data.access_token as string;
 }
 
 async function request<T>(
@@ -68,7 +66,7 @@ async function request<T>(
     let body: { error?: { code: string; message: string; details?: Record<string, unknown> } } = {};
     try {
       body = await res.json();
-    } catch {}
+    } catch { /* empty body */ }
     const err = body.error;
     throw new ApiError(err?.code ?? "HTTP_ERROR", err?.message ?? res.statusText, res.status, err?.details);
   }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef } from "react";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { api, ApiError } from "./api";
 
 export type UserRole =
@@ -18,23 +18,27 @@ export interface AuthUser {
 interface AuthStore {
   user: AuthUser | null;
   accessToken: string | null;
-  refreshToken: string | null;
-  setTokens: (access: string, refresh: string) => void;
+  setToken: (access: string) => void;
   setUser: (u: AuthUser) => void;
   logout: () => void;
 }
 
+// Access token + user in sessionStorage only; refresh token is never stored
+// (backend sets httpOnly ll_refresh cookie on login, sent automatically)
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
-      setTokens: (access, refresh) => set({ accessToken: access, refreshToken: refresh }),
+      setToken: (access) => set({ accessToken: access }),
       setUser: (u) => set({ user: u }),
-      logout: () => set({ user: null, accessToken: null, refreshToken: null }),
+      logout: () => set({ user: null, accessToken: null }),
     }),
-    { name: "loomlink-auth", partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken, user: s.user }) }
+    {
+      name: "loomlink-auth",
+      storage: createJSONStorage(() => sessionStorage),
+      partialize: (s) => ({ accessToken: s.accessToken, user: s.user }),
+    }
   )
 );
 
@@ -58,22 +62,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(employee_code: string, password: string) {
-    const data = await api.post<{ access_token: string; refresh_token: string; user: AuthUser }>(
+    const data = await api.post<{ access_token: string; user: AuthUser }>(
       "/auth/login",
       { employee_code, password },
       { skipAuth: true } as Parameters<typeof api.post>[2]
     );
-    store.setTokens(data.access_token, data.refresh_token);
+    store.setToken(data.access_token);
     store.setUser(data.user);
   }
 
   async function pinLogin(pin: string) {
-    const data = await api.post<{ access_token: string; refresh_token: string; user: AuthUser }>(
+    const data = await api.post<{ access_token: string; user: AuthUser }>(
       "/auth/pin-login",
       { pin },
       { skipAuth: true } as Parameters<typeof api.post>[2]
     );
-    store.setTokens(data.access_token, data.refresh_token);
+    store.setToken(data.access_token);
     store.setUser(data.user);
   }
 

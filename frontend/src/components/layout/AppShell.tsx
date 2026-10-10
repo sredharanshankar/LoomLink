@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../lib/auth";
 import { can } from "../../lib/permissions";
+import { RippleLiveToaster } from "../../features/ripple/index";
 import { clsx } from "clsx";
 
 const NAV_ITEMS = [
@@ -68,6 +69,9 @@ export default function AppShell() {
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
+
+      {/* Ripple live event toaster — renders nothing until Lane B is live */}
+      <RippleLiveToaster />
     </div>
   );
 }
