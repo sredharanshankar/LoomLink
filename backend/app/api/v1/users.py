@@ -4,16 +4,6 @@ from app.deps import require_permission
 router = APIRouter()
 
 
-@router.get("/auth/me")
-def get_me(user=Depends(require_permission(""))):
-    raise NotImplementedError
-
-
-@router.patch("/auth/me")
-def update_me(user=Depends(require_permission(""))):
-    raise NotImplementedError
-
-
 @router.get("/users")
 def list_users(user=Depends(require_permission("users.manage"))):
     raise NotImplementedError
