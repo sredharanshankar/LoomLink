@@ -54,7 +54,8 @@ def publish(
     from sqlalchemy import text
     from sqlalchemy import event as sa_event
 
-    now = dt.datetime.now(dt.timezone.utc)
+    from app.core.time import now as _now
+    now = _now()
 
     result = session.execute(
         text(
@@ -120,10 +121,11 @@ def _dispatch_event(event_id: int) -> None:
         except Exception as exc:
             logger.warning("WS broadcast error: %s", exc)
 
+    from app.core.time import now as _now2
     with SessionLocal() as session:
         session.execute(
             text("UPDATE domain_events SET dispatched_at = :now WHERE id = :id"),
-            {"id": event_id, "now": dt.datetime.now(dt.timezone.utc)},
+            {"id": event_id, "now": _now2()},
         )
         session.commit()
 
@@ -149,7 +151,8 @@ def _recover_undispatched() -> None:
     from app.db import SessionLocal
     from sqlalchemy import text
 
-    cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=5)
+    from app.core.time import now as _now
+    cutoff = _now() - dt.timedelta(seconds=5)
     try:
         with SessionLocal() as session:
             rows = session.execute(

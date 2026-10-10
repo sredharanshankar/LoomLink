@@ -40,7 +40,7 @@ def _parse_contract_endpoints():
 _ENDPOINTS = _parse_contract_endpoints()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def openapi_paths(app):
     spec = app.openapi()
     return {

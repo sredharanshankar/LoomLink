@@ -1,7 +1,7 @@
 """A-M1: add overtime_willing, hsn_code, state_code missing columns
 
 Revision ID: a0001mastdata
-Revises: f0001initial
+Revises: f0001
 Create Date: 2026-10-10
 """
 from __future__ import annotations
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "a0001mastdata"
-down_revision = "f0001initial"
+down_revision = "f0001"
 branch_labels = None
 depends_on = None
 

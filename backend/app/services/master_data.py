@@ -459,6 +459,8 @@ def create_machine(session: Session, data: dict, user: dict) -> Any:
     if prefix not in _STAGE_PREFIX:
         raise AppError("VALIDATION_ERROR", f"Machine code prefix must be one of: {list(_STAGE_PREFIX)}")
     stage = _STAGE_PREFIX[prefix]
+    if data.get("stage") and data["stage"] != stage:
+        raise AppError("VALIDATION_ERROR", f"Machine code '{code}' implies stage '{stage}', got '{data['stage']}'")
 
     fx, fy = int(data.get("floor_x", 1)), int(data.get("floor_y", 1))
     if not (1 <= fx <= _FLOOR_W) or not (1 <= fy <= _FLOOR_H):

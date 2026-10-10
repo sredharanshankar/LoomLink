@@ -127,7 +127,8 @@ def _format_code(entity: str, seq: int, date: dt.date, order_no: int | None) -> 
         case "invoice":
             from app.core.time import fy_label
             fy = fy_label(date)
-            return f"INV-{fy}-{seq:04d}"
+            fy_fmt = f"{fy[:2]}-{fy[2:]}"
+            return f"INV-{fy_fmt}-{seq:04d}"
         case "payment":
             return f"PAY-{yymm}-{seq:02d}"
         case "supplier_bill":
