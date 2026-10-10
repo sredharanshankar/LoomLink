@@ -12,6 +12,7 @@ interface ScanResult {
 }
 
 const WORKER_ROLES = new Set(["operator", "qc_inspector", "dispatch"]);
+const EMPLOYEE_ROLES = new Set(["operator"]);
 
 function extractCode(raw: string): string {
   try {
@@ -72,10 +73,22 @@ function ScanResolver({ rawCode }: { rawCode: string }) {
 export default function ScanResolverPage() {
   const { code } = useParams<{ code?: string }>();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
   const [modalOpen, setModalOpen] = useState(!code);
 
+  // QR code link (with code) — resolve for anyone, route by role
   if (code) {
     return <ScanResolver rawCode={decodeURIComponent(code)} />;
+  }
+
+  // Camera scanner mode (no code) — employees only
+  if (!user) {
+    navigate("/pin", { replace: true });
+    return null;
+  }
+  if (!EMPLOYEE_ROLES.has(user.role)) {
+    navigate("/app/dashboard", { replace: true });
+    return null;
   }
 
   function handleScan(scanned: string) {
@@ -86,7 +99,7 @@ export default function ScanResolverPage() {
   return (
     <ScannerModal
       open={modalOpen}
-      onClose={() => navigate(-1)}
+      onClose={() => navigate("/w", { replace: true })}
       onScan={handleScan}
     />
   );
