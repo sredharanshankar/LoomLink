@@ -626,14 +626,27 @@ def get_floor_map(session: Session) -> list[dict]:
     rows = session.execute(text("""
         SELECT m.id, m.code, m.name, m.stage, m.floor_x, m.floor_y,
                m.status, m.current_job_id, m.status_changed_at,
-               j.code AS job_code, j.produced_qty, j.planned_qty,
-               o.code AS order_code,
-               jos.worker_id AS current_worker_id
+               COALESCE(
+                   (SELECT j2.code FROM jobs j2 WHERE j2.id = m.current_job_id LIMIT 1),
+                   (SELECT j2.code FROM jobs j2 WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1)
+               ) AS job_code,
+               COALESCE(
+                   (SELECT j2.produced_qty FROM jobs j2 WHERE j2.id = m.current_job_id LIMIT 1),
+                   (SELECT j2.produced_qty FROM jobs j2 WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1)
+               ) AS produced_qty,
+               COALESCE(
+                   (SELECT j2.planned_qty FROM jobs j2 WHERE j2.id = m.current_job_id LIMIT 1),
+                   (SELECT j2.planned_qty FROM jobs j2 WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1)
+               ) AS planned_qty,
+               COALESCE(
+                   (SELECT o2.code FROM jobs j2 JOIN orders o2 ON o2.id = j2.order_id WHERE j2.id = m.current_job_id LIMIT 1),
+                   (SELECT o2.code FROM jobs j2 JOIN orders o2 ON o2.id = j2.order_id WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1)
+               ) AS order_code,
+               (SELECT jos.worker_id FROM job_operator_sessions jos
+                WHERE jos.job_id = COALESCE(m.current_job_id,
+                    (SELECT j2.id FROM jobs j2 WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1))
+                AND jos.ended_at IS NULL LIMIT 1) AS current_worker_id
         FROM machines m
-        LEFT JOIN jobs j ON j.id = m.current_job_id
-        LEFT JOIN orders o ON o.id = j.order_id
-        LEFT JOIN job_operator_sessions jos ON jos.job_id = m.current_job_id
-            AND jos.ended_at IS NULL
         WHERE m.is_active = true
         ORDER BY m.stage, m.code
     """)).fetchall()

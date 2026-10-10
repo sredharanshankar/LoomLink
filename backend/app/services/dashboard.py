@@ -180,10 +180,15 @@ def get_production_dashboard(session: Session) -> dict:
 
     machines = session.execute(text("""
         SELECT m.code, m.stage, m.status, m.floor_x, m.floor_y,
-               j.code AS current_job, o.code AS order_code
+               COALESCE(
+                   (SELECT j2.code FROM jobs j2 WHERE j2.id = m.current_job_id LIMIT 1),
+                   (SELECT j2.code FROM jobs j2 WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1)
+               ) AS current_job,
+               COALESCE(
+                   (SELECT o2.code FROM jobs j2 JOIN orders o2 ON o2.id = j2.order_id WHERE j2.id = m.current_job_id LIMIT 1),
+                   (SELECT o2.code FROM jobs j2 JOIN orders o2 ON o2.id = j2.order_id WHERE j2.machine_id = m.id AND j2.status = 'running' ORDER BY j2.started_at DESC LIMIT 1)
+               ) AS order_code
         FROM machines m
-        LEFT JOIN jobs j ON j.id = m.current_job_id
-        LEFT JOIN orders o ON o.id = j.order_id
         ORDER BY m.stage, m.code
     """)).fetchall()
 
