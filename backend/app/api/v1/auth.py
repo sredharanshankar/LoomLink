@@ -40,13 +40,33 @@ def _get_user_by_employee_code(db: Session, code: str):
 
 
 @router.get("/me")
-def get_me(user=Depends(require_permission(""))):
-    raise NotImplementedError
+def get_me(user=Depends(require_permission("")), db: Session = Depends(get_db)):
+    row = db.execute(
+        text("SELECT id, employee_code, name, email, phone, role, preferred_language, is_active, last_login_at FROM users WHERE id = :id"),
+        {"id": str(user["sub"])},
+    ).fetchone()
+    if row is None:
+        raise AppError("NOT_FOUND", "User not found.")
+    return {
+        "id": str(row.id), "employee_code": row.employee_code, "name": row.name,
+        "email": row.email, "phone": row.phone, "role": row.role,
+        "preferred_language": row.preferred_language, "is_active": row.is_active,
+        "last_login_at": row.last_login_at.isoformat() if row.last_login_at else None,
+    }
 
 
 @router.patch("/me")
-def update_me(user=Depends(require_permission(""))):
-    raise NotImplementedError
+def update_me(body: dict, user=Depends(require_permission("")), db: Session = Depends(get_db)):
+    from app.core.time import now as _now
+    allowed = {k: v for k, v in body.items() if k in ("name", "email", "phone", "preferred_language")}
+    if not allowed:
+        raise AppError("VALIDATION_ERROR", "No updatable fields provided.")
+    sets = ", ".join(f"{k} = :{k}" for k in allowed)
+    allowed["id"] = str(user["sub"])
+    allowed["now"] = _now()
+    db.execute(text(f"UPDATE users SET {sets}, updated_at = :now WHERE id = :id"), allowed)
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/login", response_model=TokenResponse)
