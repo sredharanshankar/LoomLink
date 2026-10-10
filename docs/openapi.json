@@ -5490,7 +5490,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastSnapshotOut"
+                }
               }
             }
           }
@@ -5507,14 +5509,16 @@
         "tags": [
           "ripple"
         ],
-        "summary": "Recompute",
-        "operationId": "recompute_api_v1_ripple_recompute_post",
+        "summary": "Force Recompute",
+        "operationId": "force_recompute_api_v1_ripple_recompute_post",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastSnapshotOut"
+                }
               }
             }
           }
@@ -5545,6 +5549,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Id"
             }
           }
@@ -5554,7 +5559,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OrderHealthOut"
+                }
               }
             }
           },
@@ -5578,21 +5585,56 @@
         ],
         "summary": "List Events",
         "operationId": "list_events_api_v1_ripple_events_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "resolved",
+                    "dismissed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RippleEventListOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/ripple/events/{id}": {
@@ -5614,6 +5656,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Id"
             }
           }
@@ -5623,7 +5666,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RippleEventOut"
+                }
               }
             }
           },
@@ -5659,6 +5704,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Id"
             }
           },
@@ -5668,16 +5714,29 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Fix Id"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyFixIn"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RippleEventOut"
+                }
               }
             }
           },
@@ -5713,16 +5772,29 @@
             "required": true,
             "schema": {
               "type": "string",
+              "format": "uuid",
               "title": "Id"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissRippleIn"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RippleEventOut"
+                }
               }
             }
           },
@@ -5746,12 +5818,34 @@
         ],
         "summary": "What If",
         "operationId": "what_if_api_v1_ripple_what_if_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhatIfIn"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/WhatIfOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -5770,12 +5864,34 @@
         ],
         "summary": "Promise Date",
         "operationId": "promise_date_api_v1_ripple_promise_date_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromiseDateIn"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PromiseDateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
@@ -5799,7 +5915,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IdleHunterSuggestionOut"
+                  },
+                  "type": "array",
+                  "title": "Response Idle Hunter Api V1 Ripple Idle Hunter Get"
+                }
               }
             }
           }
@@ -6041,6 +6163,77 @@
   },
   "components": {
     "schemas": {
+      "ApplyFixIn": {
+        "properties": {
+          "expected_state_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected State Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expected_state_version"
+        ],
+        "title": "ApplyFixIn"
+      },
+      "DismissRippleIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "DismissRippleIn"
+      },
+      "ForecastSnapshotOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "state_version": {
+            "type": "integer",
+            "title": "State Version"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          },
+          "forecast": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Forecast"
+          },
+          "trigger_event_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Event Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "state_version",
+          "computed_at",
+          "forecast"
+        ],
+        "title": "ForecastSnapshotOut"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -6053,6 +6246,48 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "IdleHunterSuggestionOut": {
+        "properties": {
+          "machine": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Machine"
+          },
+          "job": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Job"
+          },
+          "order": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Order"
+          },
+          "gain_minutes": {
+            "type": "integer",
+            "title": "Gain Minutes"
+          },
+          "reason_key": {
+            "type": "string",
+            "title": "Reason Key"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "machine",
+          "job",
+          "order",
+          "gain_minutes",
+          "reason_key",
+          "params"
+        ],
+        "title": "IdleHunterSuggestionOut"
       },
       "LoginRequest": {
         "properties": {
@@ -6349,6 +6584,54 @@
         "type": "object",
         "title": "MillSettingsUpdate"
       },
+      "OrderHealthOut": {
+        "properties": {
+          "health": {
+            "type": "string",
+            "title": "Health"
+          },
+          "slack_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slack Minutes"
+          },
+          "predicted_dispatch_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Dispatch At"
+          },
+          "confidence_minutes": {
+            "type": "integer",
+            "title": "Confidence Minutes"
+          },
+          "is_estimate": {
+            "type": "boolean",
+            "title": "Is Estimate",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "health",
+          "slack_minutes",
+          "predicted_dispatch_at",
+          "confidence_minutes"
+        ],
+        "title": "OrderHealthOut"
+      },
       "PinLoginRequest": {
         "properties": {
           "employee_code": {
@@ -6367,6 +6650,191 @@
         ],
         "title": "PinLoginRequest"
       },
+      "PrioritisedPromiseOut": {
+        "properties": {
+          "dispatch_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatch Date"
+          },
+          "impacts": {
+            "items": {
+              "$ref": "#/components/schemas/PromiseImpactOut"
+            },
+            "type": "array",
+            "title": "Impacts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dispatch_date",
+          "impacts"
+        ],
+        "title": "PrioritisedPromiseOut"
+      },
+      "PromiseConditionOut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "params"
+        ],
+        "title": "PromiseConditionOut"
+      },
+      "PromiseDateIn": {
+        "properties": {
+          "buyer_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Buyer Id"
+          },
+          "fabric_type_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Fabric Type Id"
+          },
+          "quantity_cm": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity Cm"
+          },
+          "requested_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested Date"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "high",
+              "rush"
+            ],
+            "title": "Priority",
+            "default": "normal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "buyer_id",
+          "fabric_type_id",
+          "quantity_cm"
+        ],
+        "title": "PromiseDateIn"
+      },
+      "PromiseDateOut": {
+        "properties": {
+          "earliest_dispatch_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest Dispatch Date"
+          },
+          "limiting_factor": {
+            "type": "string",
+            "title": "Limiting Factor"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/PromiseConditionOut"
+            },
+            "type": "array",
+            "title": "Conditions"
+          },
+          "if_prioritised": {
+            "$ref": "#/components/schemas/PrioritisedPromiseOut"
+          },
+          "suggested_quote_key": {
+            "type": "string",
+            "title": "Suggested Quote Key"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "is_estimate": {
+            "type": "boolean",
+            "title": "Is Estimate",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "earliest_dispatch_date",
+          "limiting_factor",
+          "conditions",
+          "if_prioritised",
+          "suggested_quote_key",
+          "params"
+        ],
+        "title": "PromiseDateOut"
+      },
+      "PromiseImpactOut": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "slack_delta_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slack Delta Minutes"
+          },
+          "newly_late": {
+            "type": "boolean",
+            "title": "Newly Late"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "code",
+          "slack_delta_minutes",
+          "newly_late"
+        ],
+        "title": "PromiseImpactOut"
+      },
       "RefreshRequest": {
         "properties": {
           "refresh_token": {
@@ -6383,6 +6851,290 @@
         },
         "type": "object",
         "title": "RefreshRequest"
+      },
+      "RippleEventListOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RippleEventOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "RippleEventListOut"
+      },
+      "RippleEventOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "trigger_event_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Event Id"
+          },
+          "trigger_kind": {
+            "type": "string",
+            "title": "Trigger Kind"
+          },
+          "title_key": {
+            "type": "string",
+            "title": "Title Key"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "affected_orders": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Affected Orders"
+          },
+          "at_risk_paise": {
+            "type": "integer",
+            "title": "At Risk Paise"
+          },
+          "at_risk_breakdown": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "At Risk Breakdown"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "resolved_fix_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Fix Id"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "fixes": {
+            "items": {
+              "$ref": "#/components/schemas/RippleFixOut"
+            },
+            "type": "array",
+            "title": "Fixes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "trigger_event_id",
+          "trigger_kind",
+          "title_key",
+          "params",
+          "affected_orders",
+          "at_risk_paise",
+          "at_risk_breakdown",
+          "status",
+          "snapshot_id",
+          "resolved_fix_id",
+          "resolved_by",
+          "resolved_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RippleEventOut"
+      },
+      "RippleFixOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "title_key": {
+            "type": "string",
+            "title": "Title Key"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          },
+          "actions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Actions"
+          },
+          "orders_on_time": {
+            "type": "integer",
+            "title": "Orders On Time"
+          },
+          "orders_total": {
+            "type": "integer",
+            "title": "Orders Total"
+          },
+          "total_late_minutes": {
+            "type": "integer",
+            "title": "Total Late Minutes"
+          },
+          "extra_cost_paise": {
+            "type": "integer",
+            "title": "Extra Cost Paise"
+          },
+          "changes_count": {
+            "type": "integer",
+            "title": "Changes Count"
+          },
+          "explanation_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation Key"
+          },
+          "explanation_params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Explanation Params"
+          },
+          "applied_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied At"
+          },
+          "applied_by": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rank",
+          "kind",
+          "title_key",
+          "params",
+          "actions",
+          "orders_on_time",
+          "orders_total",
+          "total_late_minutes",
+          "extra_cost_paise",
+          "changes_count",
+          "explanation_key",
+          "explanation_params",
+          "applied_at",
+          "applied_by"
+        ],
+        "title": "RippleFixOut"
       },
       "TokenResponse": {
         "properties": {
@@ -6452,6 +7204,93 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WhatIfIn": {
+        "properties": {
+          "scenario": {
+            "$ref": "#/components/schemas/WhatIfScenario"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario"
+        ],
+        "title": "WhatIfIn"
+      },
+      "WhatIfOut": {
+        "properties": {
+          "scenario_kind": {
+            "type": "string",
+            "title": "Scenario Kind"
+          },
+          "before": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Before"
+          },
+          "after": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "After"
+          },
+          "diff": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Diff"
+          },
+          "at_risk": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "At Risk"
+          },
+          "fixes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Fixes"
+          },
+          "is_estimate": {
+            "type": "boolean",
+            "title": "Is Estimate",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_kind",
+          "before",
+          "after",
+          "diff",
+          "at_risk",
+          "fixes"
+        ],
+        "title": "WhatIfOut"
+      },
+      "WhatIfScenario": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "breakdown",
+              "yarn_delay",
+              "rush_order",
+              "absence"
+            ],
+            "title": "Kind"
+          },
+          "params": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "WhatIfScenario"
       }
     },
     "securitySchemes": {

@@ -6,4 +6,7 @@ subscribe domain-event handlers without editing main.py.
 
 
 def register() -> None:
-    """Subscribe all Ripple domain-event handlers. Lane B implements this."""
+    """Subscribe the debounced Ripple recompute loop."""
+    from .engine_runner import register as register_runner
+
+    register_runner()
