@@ -39,7 +39,7 @@ export default function BuyerOrderFormPage() {
       if (msg.toLowerCase().includes("no buyer profile")) {
         setError(
           "Your account is not linked to a buyer profile yet. " +
-          "Please ask your administrator to open Settings → Users, find your account, and click "Link Buyer"."
+          "Please ask your administrator to open Settings → Users, find your account, and click 'Link Buyer'."
         );
       } else {
         setError(msg || "Failed to place order. Please try again.");
