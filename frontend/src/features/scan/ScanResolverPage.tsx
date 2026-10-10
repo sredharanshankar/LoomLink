@@ -1,53 +1,46 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Html5Qrcode } from "html5-qrcode";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
-import Spinner from "../../components/ui/Spinner";
+import ScannerModal from "../../components/ui/ScannerModal";
+
+function resolveRoute(code: string): string {
+  try {
+    const url = new URL(code);
+    const parts = url.pathname.split("/").filter(Boolean);
+    return routeForParts(parts);
+  } catch { /* bare code */ }
+  return routeForParts([code]);
+}
+
+function routeForParts(parts: string[]): string {
+  const [prefix, id] = parts;
+  if (prefix === "rolls" && id) return `/app/rolls/${id}`;
+  if (prefix === "jobs" && id) return `/app/production`;
+  if (prefix === "orders" && id) return `/app/orders/${id}`;
+  if (prefix === "batches" && id) return `/app/inventory/batches/${id}`;
+  if (prefix === "machines" && id) return `/app/machines/${id}`;
+  return "/app/dashboard";
+}
 
 export default function ScanResolverPage() {
   const { code } = useParams<{ code?: string }>();
   const navigate = useNavigate();
-  const [scanning, setScanning] = useState(!code);
-  const [error, setError] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [modalOpen, setModalOpen] = useState(!code);
 
-  useEffect(() => {
-    if (code) { resolve(code); return; }
-    if (!containerRef.current) return;
-    const qr = new Html5Qrcode("qr-reader");
-    qr.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decoded) => { qr.stop().then(() => resolve(decoded)).catch(() => {}); },
-      undefined
-    ).catch((err) => setError(String(err)));
-    return () => { qr.isScanning && qr.stop().catch(() => {}); };
-  }, [code]);
+  if (code) {
+    navigate(resolveRoute(decodeURIComponent(code)), { replace: true });
+    return null;
+  }
 
-  function resolve(raw: string) {
-    setScanning(false);
-    try {
-      const url = new URL(raw);
-      const parts = url.pathname.split("/");
-      const prefix = parts[1];
-      const id = parts[2];
-      if (prefix === "rolls") navigate("/quality/rolls/" + id);
-      else if (prefix === "jobs") navigate("/production/jobs/" + id);
-      else if (prefix === "orders") navigate("/orders/" + id);
-      else navigate("/dashboard");
-    } catch { navigate("/dashboard"); }
+  function handleScan(scanned: string) {
+    setModalOpen(false);
+    navigate(resolveRoute(scanned), { replace: true });
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4">
-      <Card className="w-full max-w-sm text-center">
-        <h2 className="text-xl font-semibold mb-4">Scan QR Code</h2>
-        {scanning ? (
-          <><div id="qr-reader" ref={containerRef} className="w-full" />{error && <p className="text-sm text-red-600 mt-2">{error}</p>}</>
-        ) : <Spinner className="mx-auto" />}
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mt-4">Cancel</Button>
-      </Card>
-    </div>
+    <ScannerModal
+      open={modalOpen}
+      onClose={() => navigate(-1)}
+      onScan={handleScan}
+    />
   );
 }

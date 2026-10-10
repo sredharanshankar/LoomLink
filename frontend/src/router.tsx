@@ -5,6 +5,8 @@ import WorkerShell from "./components/layout/WorkerShell";
 import PublicShell from "./components/layout/PublicShell";
 import { useAuth } from "./lib/auth";
 import Spinner from "./components/ui/Spinner";
+import { rippleRoutes } from "./features/ripple/index";
+import { buyerLineRoutes } from "./features/buyer-line/index";
 
 const LoginPage = lazy(() => import("./features/auth/LoginPage"));
 const PinLoginPage = lazy(() => import("./features/auth/PinLoginPage"));
@@ -137,6 +139,17 @@ export default function AppRouter() {
         <Route path="settings" element={<Lazy><SettingsPage /></Lazy>} />
         <Route path="users" element={<Lazy><UsersPage /></Lazy>} />
         <Route path="audit" element={<Lazy><AuditPage /></Lazy>} />
+        {/* Lane B: Ripple routes under /app */}
+        {rippleRoutes.map((r) => (
+          <Route key={String(r.path)} path={String(r.path)} element={r.element} />
+        ))}
+      </Route>
+
+      {/* Lane B: Buyer Line portal at /buyer-line */}
+      <Route path="/buyer-line">
+        {buyerLineRoutes.map((r) => (
+          <Route key={String(r.path ?? "index")} index={!r.path} path={r.path ? String(r.path) : undefined} element={r.element} />
+        ))}
       </Route>
 
       <Route path="/" element={<Navigate to="/app/dashboard" replace />} />

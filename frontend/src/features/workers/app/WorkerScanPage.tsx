@@ -1,11 +1,22 @@
-﻿import PageHeader from "../../../components/ui/PageHeader";
+import { useNavigate } from "react-router-dom";
+import PageHeader from "../../../components/ui/PageHeader";
+import ScannerModal from "../../../components/ui/ScannerModal";
 
 export default function WorkerScanPage() {
+  const navigate = useNavigate();
+
+  function handleScan(code: string) {
+    navigate(`/s/${encodeURIComponent(code)}`);
+  }
+
   return (
     <div className="p-4">
       <PageHeader title="Scan" />
-      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-400">Scan</div>
+      <ScannerModal
+        open={true}
+        onClose={() => navigate(-1)}
+        onScan={handleScan}
+      />
     </div>
   );
 }
-

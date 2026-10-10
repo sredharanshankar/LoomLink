@@ -24,7 +24,8 @@ export default function Drawer({ open, onClose, title, children, width = "md" }:
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div className="absolute inset-0 bg-black/40" role="presentation" onClick={onClose} onKeyDown={(e) => e.key === "Escape" && onClose()} />
       <div className={clsx("relative ml-auto h-full bg-white shadow-xl flex flex-col w-full", WIDTHS[width])}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
           {title && <h2 className="text-base font-semibold text-gray-900">{title}</h2>}
