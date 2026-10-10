@@ -31,7 +31,22 @@
 
 ---
 
-## WP2 — Auth + Frontend merge (pending)
+## WP2 — Auth + Lane A + Frontend merge ✅
+
+**Branch:** `integration/final`
+**Committed by:** Sredharan Shankar (backend), DILIPDHANASEKAR (frontend merge)
+
+### Auth fixes
+- `backend/app/api/v1/auth.py`: `get_me`, `update_me` implemented; `_rt_exp()` sets correct refresh token expiry; PIN validator accepts 4–6 digits
+- Lane A endpoints brought in from `origin/core/inventory-to-hardening`: dashboard, dispatch, finance, inventory, orders, production, quality, users, workers, PDF generators, seed history
+
+### Frontend merge (web/c-m1)
+- `AppShell.tsx`: full top bar (search, live indicator, language picker, notifications, dark mode toggle); mobile sidebar overlay
+- `dark-mode.ts`, `live-status.ts`: new hooks integrated
+- `handlers.ts`: all mock handlers now check `isMocked()` + `passthrough()` for selective MSW disabling
+- `test-setup.ts`: Vitest-specific jest-dom import
+- `ScanResolverPage.tsx`: simple navigate-on-code path retained
+
 ## WP3 — Demo seed data (pending)
 ## WP4 — Lane A endpoints (pending)
 ## WP5 — Ripple on real data (pending)

@@ -23,7 +23,105 @@ def _dt(date: dt.date, hour: int, minute: int = 0) -> dt.datetime:
 def run(session: Session) -> None:
     """Insert 14 days of demo history: attendance + completed orders with jobs."""
     _seed_attendance(session)
+    _seed_named_orders(session)
     _seed_historical_orders(session)
+
+
+# ---------------------------------------------------------------------------
+# SEED §7 — specific named historical orders
+# ---------------------------------------------------------------------------
+
+def _seed_named_orders(session: Session) -> None:
+    """Seed ORD-101, ORD-103, ORD-105, ORD-106 per SEED.md §7."""
+    import secrets as _sec
+
+    def _get_buyer(code: str):
+        return session.execute(text("SELECT id FROM buyers WHERE code = :c"), {"c": code}).fetchone()
+
+    def _get_fabric(code: str):
+        return session.execute(text("SELECT id FROM fabric_types WHERE code = :c"), {"c": code}).fetchone()
+
+    def _get_machine(code: str):
+        return session.execute(text("SELECT id FROM machines WHERE code = :c"), {"c": code}).fetchone()
+
+    NAMED = [
+        # (code, buyer_code, fabric_code, qty_cm, price_paise_per_m, dispatch_offset, status, paid_paise_fn)
+        ("ORD-101", "BUY-004", "FAB-SHT-WHT", 180000, 16000, -9,  "dispatched", "full"),
+        ("ORD-103", "BUY-001", "FAB-POP-BLU", 100000, 12500, -5,  "dispatched", "half"),
+        ("ORD-105", "BUY-003", "FAB-POP-GRY", 150000,  9800, -3,  "dispatched", "none"),
+        ("ORD-106", "BUY-002", "FAB-POP-GRY",  60000,  9800, -12, "dispatched", "none"),
+    ]
+
+    for code, buyer_code, fab_code, qty_cm, price, dispatch_off, status, pay in NAMED:
+        if session.execute(text("SELECT id FROM orders WHERE code = :c"), {"c": code}).fetchone():
+            continue
+        buyer = _get_buyer(buyer_code)
+        fab = _get_fabric(fab_code)
+        if not buyer or not fab:
+            continue
+
+        oid = str(uuid.uuid4())
+        dispatch_date = _TODAY + dt.timedelta(days=dispatch_off)
+        order_date = dispatch_date - dt.timedelta(days=4)
+        tok = _sec.token_urlsafe(24)
+
+        session.execute(text("""
+            INSERT INTO orders (id, code, buyer_id, fabric_type_id, quantity_cm, price_paise_per_m,
+                status, tracking_token, dispatch_by, dispatched_at, deleted_at, created_at)
+            VALUES (:id, :code, :bid, :ftid, :qty, :price, :st, :tok, :dby, :dat, NULL, :now)
+        """), {
+            "id": oid, "code": code, "bid": str(buyer.id), "ftid": str(fab.id),
+            "qty": qty_cm, "price": price, "st": status, "tok": tok,
+            "dby": dispatch_date,
+            "dat": _dt(dispatch_date, 15),
+            "now": _dt(order_date, 8),
+        })
+
+        # Jobs: weaving + dyeing + finishing (or spinning first for R2 fabrics)
+        stages = ["spinning", "weaving", "dyeing", "finishing"] if fab_code == "FAB-TWL-NVY" else ["weaving", "dyeing", "finishing"]
+        for seq, stage in enumerate(stages, start=1):
+            jid = str(uuid.uuid4())
+            machine = None
+            if stage == "weaving":
+                machine = _get_machine("WV-01")
+            elif stage == "dyeing":
+                machine = _get_machine("DY-01")
+            elif stage == "finishing":
+                machine = _get_machine("FN-01")
+            elif stage == "spinning":
+                machine = _get_machine("SP-01")
+            session.execute(text("""
+                INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty, waste_qty,
+                    machine_id, status, started_at, completed_at, created_at)
+                VALUES (:id, :code, :oid, :stage, :seq, 'cm', :qty, :pqty, :wqty,
+                    :mid, 'completed', :start, :end, :now)
+            """), {
+                "id": jid, "code": f"{code}-{stage[:3].upper()}",
+                "oid": oid, "stage": stage, "seq": seq, "qty": qty_cm,
+                "pqty": qty_cm - qty_cm // 100,
+                "wqty": qty_cm // 200,
+                "mid": str(machine[0]) if machine else None,
+                "start": _dt(order_date + dt.timedelta(days=seq - 1), 8),
+                "end": _dt(order_date + dt.timedelta(days=seq), 16),
+                "now": _dt(order_date, 8),
+            })
+
+        # Invoice
+        inv_id = str(uuid.uuid4())
+        total_paise = qty_cm * price // 100  # qty_cm in cm, price per m, so /100
+        paid_paise = total_paise if pay == "full" else (total_paise // 2 if pay == "half" else 0)
+        inv_code = f"INV-{code[4:]}"  # INV-101 etc.
+        session.execute(text("""
+            INSERT INTO invoices (id, code, order_id, amount_paise, paid_paise, status, issued_at, due_at, created_at)
+            VALUES (:id, :code, :oid, :amt, :paid, :st, :iss, :due, :now)
+        """), {
+            "id": inv_id, "code": inv_code, "oid": oid,
+            "amt": total_paise, "paid": paid_paise,
+            "st": "paid" if pay == "full" else ("partial" if pay == "half" else "unpaid"),
+            "iss": _dt(dispatch_date, 16),
+            "due": _dt(dispatch_date + dt.timedelta(days=30), 16),
+            "now": _dt(dispatch_date, 16),
+        })
 
 
 # ---------------------------------------------------------------------------
