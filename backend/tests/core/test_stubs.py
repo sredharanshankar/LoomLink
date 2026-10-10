@@ -3,20 +3,8 @@ import pytest
 
 
 _STUB_ENDPOINTS = [
-    # suppliers, yarn-types, machines, workers implemented in A-M1 (real CRUD)
-    ("GET", "/api/v1/orders"),
-    ("GET", "/api/v1/jobs"),
-    ("GET", "/api/v1/rolls"),
+    # inspections not yet wired to a route
     ("GET", "/api/v1/inspections"),
-    ("GET", "/api/v1/dispatches"),
-    ("GET", "/api/v1/invoices"),
-    ("GET", "/api/v1/ripple"),
-    ("GET", "/api/v1/ripple/idle-hunter"),
-    ("GET", "/api/v1/leak/today"),
-    ("GET", "/api/v1/finance/receivables"),
-    ("GET", "/api/v1/finance/payables"),
-    ("GET", "/api/v1/dashboard/owner"),
-    ("GET", "/api/v1/users"),
 ]
 
 
