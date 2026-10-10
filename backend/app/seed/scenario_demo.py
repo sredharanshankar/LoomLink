@@ -53,16 +53,17 @@ def _seed_yarn_inventory(session: Session) -> None:
         if not yt or not sup:
             continue
 
-        received_date = _d(-3) if batch_code.startswith("YB-2610") else _d(-15)
+        recv_day_offset = -3 if batch_code.startswith("YB-2610") else -15
         bid = str(uuid.uuid4())
         session.execute(text("""
-            INSERT INTO yarn_batches (id, code, yarn_type_id, supplier_id, quantity_g,
-                remaining_g, rate_paise_per_kg, received_date, status, created_at)
-            VALUES (:id, :code, :ytid, :sid, :qty, :rem, :rate, :recv, 'available', :now)
+            INSERT INTO yarn_batches (id, code, yarn_type_id, supplier_id, received_g,
+                rate_paise_per_kg, received_at, status, created_at)
+            VALUES (:id, :code, :ytid, :sid, :qty, :rate, :recv, 'active', :now)
         """), {
             "id": bid, "code": batch_code, "ytid": str(yt[0]), "sid": str(sup[0]),
-            "qty": qty_g, "rem": qty_g, "rate": rate,
-            "recv": received_date, "now": _ts(8),
+            "qty": qty_g, "rate": rate,
+            "recv": _ts(8, day_offset=recv_day_offset),
+            "now": _ts(8),
         })
 
 
@@ -102,8 +103,8 @@ def _seed_active_orders(session: Session) -> None:
         oid = str(uuid.uuid4())
         session.execute(text("""
             INSERT INTO orders (id, code, buyer_id, fabric_type_id, quantity_cm, price_paise_per_m,
-                status, tracking_token, dispatch_by, dispatched_at, deleted_at, created_at)
-            VALUES (:id, :code, :bid, :ftid, :qty, :price, :st, :tok, :dby, NULL, NULL, :now)
+                status, tracking_token, due_date, created_at)
+            VALUES (:id, :code, :bid, :ftid, :qty, :price, :st, :tok, :dby, :now)
         """), {
             "id": oid, "code": code, "bid": str(b[0]), "ftid": str(f[0]),
             "qty": qty_cm, "price": price, "st": status,
@@ -119,7 +120,7 @@ def _seed_active_orders(session: Session) -> None:
             jid = str(uuid.uuid4())
             session.execute(text("""
                 INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
-                    waste_qty, machine_id, status, started_at, completed_at, created_at)
+                    waste_qty, machine_id, status, started_at, finished_at, created_at)
                 VALUES (:id, :code, :oid, 'weaving', 1, 'cm', :qty, :done, 0,
                     :mid, 'running', :start, NULL, :now)
             """), {
@@ -140,7 +141,7 @@ def _seed_active_orders(session: Session) -> None:
             jid = str(uuid.uuid4())
             session.execute(text("""
                 INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
-                    waste_qty, machine_id, status, started_at, completed_at, created_at)
+                    waste_qty, machine_id, status, started_at, finished_at, created_at)
                 VALUES (:id, :code, :oid, 'weaving', 1, 'cm', :qty, :done, 0,
                     :mid, 'running', :start, NULL, :now)
             """), {
@@ -157,7 +158,7 @@ def _seed_active_orders(session: Session) -> None:
             for seq, stage in [(2, "dyeing"), (3, "finishing")]:
                 session.execute(text("""
                     INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
-                        waste_qty, machine_id, status, started_at, completed_at, created_at)
+                        waste_qty, machine_id, status, started_at, finished_at, created_at)
                     VALUES (:id, :code, :oid, :stage, :seq, 'cm', :qty, 0, 0, NULL, 'queued', NULL, NULL, :now)
                 """), {
                     "id": str(uuid.uuid4()), "code": f"{code}-{stage[:3].upper()}",
@@ -169,7 +170,7 @@ def _seed_active_orders(session: Session) -> None:
             # Confirmed, queued next on WV-02
             session.execute(text("""
                 INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
-                    waste_qty, machine_id, status, started_at, completed_at, created_at)
+                    waste_qty, machine_id, status, started_at, finished_at, created_at)
                 VALUES (:id, :code, :oid, 'weaving', 1, 'cm', :qty, 0, 0,
                     (SELECT id FROM machines WHERE code='WV-02'), 'queued', NULL, NULL, :now)
             """), {
@@ -183,7 +184,7 @@ def _seed_active_orders(session: Session) -> None:
             jid = str(uuid.uuid4())
             session.execute(text("""
                 INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
-                    waste_qty, machine_id, status, started_at, completed_at, created_at)
+                    waste_qty, machine_id, status, started_at, finished_at, created_at)
                 VALUES (:id, :code, :oid, 'weaving', 1, 'cm', :qty, :done, 0,
                     :mid, 'running', :start, NULL, :now)
             """), {
@@ -203,7 +204,7 @@ def _seed_active_orders(session: Session) -> None:
             jid = str(uuid.uuid4())
             session.execute(text("""
                 INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
-                    waste_qty, machine_id, status, started_at, completed_at, created_at)
+                    waste_qty, machine_id, status, started_at, finished_at, created_at)
                 VALUES (:id, :code, :oid, 'spinning', 1, 'cm', :qty, :done, 0,
                     :mid, 'running', :start, NULL, :now)
             """), {
@@ -247,9 +248,9 @@ def _seed_attendance_today(session: Session) -> None:
             continue
 
         session.execute(text("""
-            INSERT INTO attendance (id, worker_id, shift_code, date, checked_in_at, checked_out_at,
-                overtime_minutes, status, created_at)
-            VALUES (:id, :wid, 'A', :d, :ci, NULL, 0, 'present', :now)
+            INSERT INTO attendance (id, worker_id, shift_code, date, check_in_at, check_out_at,
+                overtime_minutes, status, source, created_at)
+            VALUES (:id, :wid, 'A', :d, :ci, NULL, 0, 'present', 'seed', :now)
         """), {
             "id": str(uuid.uuid4()), "wid": str(w[0]),
             "d": _TODAY, "ci": _ts(6), "now": _ts(6),

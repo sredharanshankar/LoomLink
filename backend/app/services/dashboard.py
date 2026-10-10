@@ -34,8 +34,9 @@ def get_owner_dashboard(session: Session) -> dict:
     """)).fetchone()
 
     today_output = session.execute(text("""
-        SELECT COALESCE(SUM(jp.qty_produced_cm), 0) AS total_cm
-        FROM job_progress jp WHERE jp.recorded_at::date = :today
+        SELECT COALESCE(SUM(j.produced_qty), 0) AS total_cm
+        FROM jobs j WHERE j.status IN ('running', 'completed')
+          AND DATE(j.started_at) = :today
     """), {"today": today}).scalar() or 0
 
     qc_pending = session.execute(
@@ -46,12 +47,12 @@ def get_owner_dashboard(session: Session) -> dict:
         SELECT COUNT(*) FROM (
             SELECT yb.yarn_type_id,
                    COALESCE(SUM(sm.qty_g), 0) AS on_hand_g,
-                   yt.reorder_threshold_g
+                   yt.reorder_level_g
             FROM yarn_types yt
             LEFT JOIN yarn_batches yb ON yb.yarn_type_id = yt.id
             LEFT JOIN stock_movements sm ON sm.batch_id = yb.id
-            GROUP BY yb.yarn_type_id, yt.reorder_threshold_g
-            HAVING COALESCE(SUM(sm.qty_g), 0) <= yt.reorder_threshold_g
+            GROUP BY yb.yarn_type_id, yt.reorder_level_g
+            HAVING COALESCE(SUM(sm.qty_g), 0) <= yt.reorder_level_g
         ) t
     """)).scalar() or 0
 
@@ -65,18 +66,37 @@ def get_owner_dashboard(session: Session) -> dict:
         WHERE due_date < :today AND status NOT IN ('closed', 'dispatched', 'cancelled')
     """), {"today": today}).scalar() or 0
 
+    jobs_running = session.execute(
+        text("SELECT COUNT(*) FROM jobs WHERE status = 'running'")
+    ).scalar() or 0
+
+    dispatches_today = session.execute(text("""
+        SELECT COUNT(*) FROM dispatches WHERE DATE(created_at) = :today
+    """), {"today": today}).scalar() or 0
+
+    orders_due_7d = session.execute(text("""
+        SELECT COUNT(*) FROM orders
+        WHERE due_date <= :week AND status NOT IN ('closed', 'dispatched', 'cancelled')
+    """), {"week": today + __import__('datetime').timedelta(days=7)}).scalar() or 0
+
     return {
         "as_of": app_time.now().isoformat(),
         "order_pipeline": pipeline,
         "overdue_orders": int(overdue_orders),
+        "orders_due_7d": int(orders_due_7d),
         "month_revenue_paise": int(month_revenue.total) if month_revenue else 0,
         "month_collected_paise": int(month_revenue.collected) if month_revenue else 0,
+        "cash_in_mtd_paise": int(month_revenue.collected) if month_revenue else 0,
         "receivables_paise": int(receivables.total) if receivables else 0,
         "overdue_receivables_paise": int(receivables.overdue) if receivables else 0,
         "today_output_cm": int(today_output),
         "qc_pending_rolls": int(qc_pending),
+        "rolls_in_qc": int(qc_pending),
         "low_stock_types": int(low_stock),
+        "low_stock_count": int(low_stock),
         "workers_on_floor": int(workers_on_floor),
+        "jobs_running": int(jobs_running),
+        "dispatches_today": int(dispatches_today),
     }
 
 
@@ -98,12 +118,12 @@ def get_daily_brief(session: Session) -> dict:
     low_stock_items = session.execute(text("""
         SELECT yt.name AS yarn_name, yt.code AS yarn_code,
                COALESCE(SUM(sm.qty_g), 0) AS on_hand_g,
-               yt.reorder_threshold_g
+               yt.reorder_level_g
         FROM yarn_types yt
         LEFT JOIN yarn_batches yb ON yb.yarn_type_id = yt.id
         LEFT JOIN stock_movements sm ON sm.batch_id = yb.id
-        GROUP BY yt.id, yt.name, yt.code, yt.reorder_threshold_g
-        HAVING COALESCE(SUM(sm.qty_g), 0) <= yt.reorder_threshold_g
+        GROUP BY yt.id, yt.name, yt.code, yt.reorder_level_g
+        HAVING COALESCE(SUM(sm.qty_g), 0) <= yt.reorder_level_g
         LIMIT 10
     """)).fetchall()
 
@@ -129,7 +149,7 @@ def get_daily_brief(session: Session) -> dict:
             {
                 "code": y.yarn_code, "name": y.yarn_name,
                 "on_hand_g": int(y.on_hand_g),
-                "reorder_threshold_g": y.reorder_threshold_g,
+                "reorder_level_g": y.reorder_level_g,
             }
             for y in low_stock_items
         ],
@@ -167,11 +187,11 @@ def get_production_dashboard(session: Session) -> dict:
     """)).fetchall()
 
     today_output = session.execute(text("""
-        SELECT m.stage, COALESCE(SUM(jp.qty_produced_cm), 0) AS produced_cm
-        FROM job_progress jp
-        JOIN jobs j ON j.id = jp.job_id
+        SELECT m.stage, COALESCE(SUM(j.produced_qty), 0) AS produced_cm
+        FROM jobs j
         JOIN machines m ON m.id = j.machine_id
-        WHERE jp.recorded_at::date = :today
+        WHERE j.status IN ('running', 'completed')
+          AND DATE(j.started_at) = :today
         GROUP BY m.stage
     """), {"today": today}).fetchall()
 

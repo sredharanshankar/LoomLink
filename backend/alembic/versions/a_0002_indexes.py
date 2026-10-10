@@ -17,16 +17,16 @@ def upgrade() -> None:
     # Jobs — most-queried by order + stage + status
     op.create_index("ix_jobs_order_stage", "jobs", ["order_id", "stage"])
     op.create_index("ix_jobs_machine_status", "jobs", ["machine_id", "status"])
-    op.create_index("ix_jobs_status", "jobs", ["status"])
+    # ix_jobs_status already created in f_0001_initial
 
     # Rolls — quality view, dispatch
     op.create_index("ix_rolls_order_status", "rolls", ["order_id", "status"])
-    op.create_index("ix_rolls_status", "rolls", ["status"])
+    # ix_rolls_status already created in f_0001_initial
 
     # Orders — buyer portal, dispatch
     op.create_index("ix_orders_buyer_status", "orders", ["buyer_id", "status"])
     op.create_index("ix_orders_tracking_token", "orders", ["tracking_token"], unique=True)
-    op.create_index("ix_orders_status", "orders", ["status"])
+    # ix_orders_status already created in f_0001_initial
 
     # Invoices — finance receivables
     op.create_index("ix_invoices_buyer_status", "invoices", ["buyer_id", "status"])
@@ -53,12 +53,12 @@ def upgrade() -> None:
     # Payroll lines — run lookup
     op.create_index("ix_payroll_lines_run", "payroll_lines", ["run_id"])
 
-    # Yarn stock movements — inventory valuation
-    op.create_index("ix_yarn_stock_movements_batch", "yarn_stock_movements", ["batch_id"])
+    # Stock movements — inventory valuation (table is stock_movements)
+    # ix_stock_movements_batch_id already created in f_0001_initial
 
 
 def downgrade() -> None:
-    op.drop_index("ix_yarn_stock_movements_batch", "yarn_stock_movements")
+    # ix_stock_movements_batch_id owned by f_0001_initial
     op.drop_index("ix_payroll_lines_run", "payroll_lines")
     op.drop_index("ix_dispatch_items_dispatch", "dispatch_items")
     op.drop_index("ix_domain_events_dispatched_at", "domain_events")
@@ -70,11 +70,11 @@ def downgrade() -> None:
     op.drop_index("ix_attendance_worker_date", "attendance")
     op.drop_index("ix_invoices_issue_date", "invoices")
     op.drop_index("ix_invoices_buyer_status", "invoices")
-    op.drop_index("ix_orders_status", "orders")
+    # ix_orders_status owned by f_0001_initial
     op.drop_index("ix_orders_tracking_token", "orders")
     op.drop_index("ix_orders_buyer_status", "orders")
-    op.drop_index("ix_rolls_status", "rolls")
+    # ix_rolls_status owned by f_0001_initial
     op.drop_index("ix_rolls_order_status", "rolls")
-    op.drop_index("ix_jobs_status", "jobs")
+    # ix_jobs_status owned by f_0001_initial
     op.drop_index("ix_jobs_machine_status", "jobs")
     op.drop_index("ix_jobs_order_stage", "jobs")

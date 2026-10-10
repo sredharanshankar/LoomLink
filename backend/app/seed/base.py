@@ -438,12 +438,11 @@ def _seed_machines(session: Session) -> None:
             continue
         mid = str(uuid.uuid4())
         session.execute(text("""
-            INSERT INTO machines (id, code, stage, floor_x, floor_y, status, notes, created_at)
-            VALUES (:id, :code, :stage, :fx, :fy, 'idle', :notes, :now)
+            INSERT INTO machines (id, code, name, stage, floor_x, floor_y, status, unit, idle_cost_paise_per_hour, created_at)
+            VALUES (:id, :code, :name, :stage, :fx, :fy, 'idle', 'cm', 0, :now)
         """), {
-            "id": mid, "code": m["code"], "stage": m["stage"],
-            "fx": m["floor_x"], "fy": m["floor_y"],
-            "notes": m.get("name"), "now": now(),
+            "id": mid, "code": m["code"], "name": m.get("name", m["code"]),
+            "stage": m["stage"], "fx": m["floor_x"], "fy": m["floor_y"], "now": now(),
         })
         for fc in m["fabric_codes"]:
             ft_row = session.execute(

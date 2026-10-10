@@ -9,7 +9,7 @@ class LoginRequest(BaseModel):
 
 
 class PinLoginRequest(BaseModel):
-    employee_code: str
+    employee_code: str | None = None
     pin: str
 
     @field_validator("pin")

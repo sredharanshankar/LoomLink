@@ -2,7 +2,7 @@ from __future__ import annotations
 import datetime as _dt
 from fastapi import APIRouter, Depends, Request, Response, Body
 from sqlalchemy.orm import Session
-from app.deps import get_db, require_permission
+from app.deps import get_db, require_permission, current_user as _current_user
 from app.core.errors import AppError
 from app.core.security import (
     verify_password, verify_pin, create_access_token,
@@ -47,7 +47,7 @@ def _get_user_by_employee_code(db: Session, code: str):
 
 
 @router.get("/me")
-def get_me(user=Depends(require_permission("")), db: Session = Depends(get_db)):
+def get_me(user=Depends(_current_user), db: Session = Depends(get_db)):
     from sqlalchemy import text
     row = db.execute(
         text("SELECT id, employee_code, name, email, phone, role, preferred_language, is_active FROM users WHERE id = :uid"),
@@ -55,17 +55,17 @@ def get_me(user=Depends(require_permission("")), db: Session = Depends(get_db)):
     ).fetchone()
     if not row:
         raise AppError("NOT_FOUND", "User not found")
-    from app.core.rbac import ROLE_PERMISSIONS
+    from app.core.rbac import PERMISSIONS
     return {
         "id": str(row.id),
         "employee_code": row.employee_code,
-        "name": row.name,
+        "full_name": row.name,
         "email": row.email,
         "phone": row.phone,
         "role": row.role,
-        "preferred_language": row.preferred_language,
+        "language": row.preferred_language,
         "is_active": row.is_active,
-        "permissions": list(ROLE_PERMISSIONS.get(row.role, set())),
+        "permissions": list(PERMISSIONS.get(row.role, set())),
     }
 
 
@@ -94,8 +94,8 @@ def login(body: LoginRequest, request: Request, response: Response, db: Session 
     raw_rt, hashed_rt = generate_refresh_token()
     db.execute(
         text(
-            "INSERT INTO refresh_tokens (user_id, token_hash, expires_at, created_at) "
-            "VALUES (:uid, :th, :exp, :now)"
+            "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) "
+            "VALUES (gen_random_uuid(), :uid, :th, :exp, :now)"
         ),
         {
             "uid": user.id,
@@ -110,16 +110,24 @@ def login(body: LoginRequest, request: Request, response: Response, db: Session 
 
 @router.post("/pin-login", response_model=TokenResponse)
 def pin_login(body: PinLoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
-    rate_limit_login(request, body.employee_code)
-    user = _get_user_by_employee_code(db, body.employee_code)
-    if not user or not user.is_active or not user.pin_hash or not verify_pin(body.pin, user.pin_hash):
-        raise AppError("UNAUTHENTICATED", "Invalid credentials.")
+    rate_limit_login(request, body.employee_code or "pin")
+    if body.employee_code:
+        user = _get_user_by_employee_code(db, body.employee_code)
+        if not user or not user.is_active or not user.pin_hash or not verify_pin(body.pin, user.pin_hash):
+            raise AppError("UNAUTHENTICATED", "Invalid credentials.")
+    else:
+        rows = db.execute(
+            text("SELECT id, password_hash, pin_hash, role, is_active FROM users WHERE pin_hash IS NOT NULL AND is_active = true")
+        ).fetchall()
+        user = next((r for r in rows if r.pin_hash and verify_pin(body.pin, r.pin_hash)), None)
+        if not user:
+            raise AppError("UNAUTHENTICATED", "Invalid credentials.")
     access_token, expires_at = create_access_token(str(user.id), user.role)
     raw_rt, hashed_rt = generate_refresh_token()
     db.execute(
         text(
-            "INSERT INTO refresh_tokens (user_id, token_hash, expires_at, created_at) "
-            "VALUES (:uid, :th, :exp, :now)"
+            "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) "
+            "VALUES (gen_random_uuid(), :uid, :th, :exp, :now)"
         ),
         {
             "uid": user.id,
@@ -161,8 +169,8 @@ def refresh(
     raw_rt, hashed_rt = generate_refresh_token()
     db.execute(
         text(
-            "INSERT INTO refresh_tokens (user_id, token_hash, expires_at, created_at) "
-            "VALUES (:uid, :th, :exp, :now)"
+            "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) "
+            "VALUES (gen_random_uuid(), :uid, :th, :exp, :now)"
         ),
         {
             "uid": row.user_id,

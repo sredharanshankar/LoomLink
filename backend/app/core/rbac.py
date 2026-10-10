@@ -128,6 +128,7 @@ async def current_user(
         raise AppError("UNAUTHENTICATED", "Token expired.")
     except jwt.InvalidTokenError:
         raise AppError("UNAUTHENTICATED", "Invalid token.")
+    payload["id"] = payload.get("sub")
     return payload
 
 

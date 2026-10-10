@@ -14,7 +14,7 @@ def owner_dashboard(
     user=Depends(require_permission("dashboard.owner")),
     db=Depends(get_db),
 ):
-    return dash_svc.get_owner_dashboard(db, user)
+    return dash_svc.get_owner_dashboard(db)
 
 
 @router.get("/dashboard/daily-brief")
@@ -22,7 +22,7 @@ def daily_brief(
     user=Depends(require_permission("dashboard.owner")),
     db=Depends(get_db),
 ):
-    return dash_svc.get_daily_brief(db, user)
+    return dash_svc.get_daily_brief(db)
 
 
 @router.get("/dashboard/production")
@@ -30,7 +30,7 @@ def production_dashboard(
     user=Depends(require_permission("production.view")),
     db=Depends(get_db),
 ):
-    return dash_svc.get_production_dashboard(db, user)
+    return dash_svc.get_production_dashboard(db)
 
 
 @router.get("/public/track/{tracking_token}")

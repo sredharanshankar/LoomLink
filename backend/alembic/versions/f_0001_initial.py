@@ -534,7 +534,7 @@ def upgrade() -> None:
     op.create_index("ix_dispatches_order_id", "dispatches", ["order_id"])
     op.create_table("dispatch_items",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("dispatch_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("dispatches.id"), nullable=False),
+        sa.Column("dispatch_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("dispatches.id"), nullable=True),
         sa.Column("roll_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("rolls.id"), nullable=False),
         sa.Column("length_cm", sa.BigInteger, nullable=False),
         sa.Column("is_active", sa.Boolean, nullable=False, server_default="true"),
@@ -617,7 +617,7 @@ def upgrade() -> None:
         sa.Column("number", sa.String(20), nullable=False, unique=True),
         sa.Column("buyer_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("buyers.id"), nullable=False),
         sa.Column("order_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("orders.id"), nullable=False),
-        sa.Column("dispatch_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("dispatches.id"), nullable=False),
+        sa.Column("dispatch_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("dispatches.id"), nullable=True),
         sa.Column("issue_date", sa.Date, nullable=False),
         sa.Column("due_date", sa.Date, nullable=False),
         sa.Column("subtotal_paise", sa.BigInteger, nullable=False),

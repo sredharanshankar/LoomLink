@@ -8,7 +8,13 @@ def main() -> None:
 
     import subprocess
     if reset:
-        subprocess.check_call(["alembic", "downgrade", "base"])
+        # DROP CASCADE avoids FK-order issues that alembic downgrade can't handle
+        from app.db import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
+            conn.commit()
     subprocess.check_call(["alembic", "upgrade", "head"])
 
     from app.db import SessionLocal

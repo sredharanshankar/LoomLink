@@ -67,13 +67,12 @@ def _seed_named_orders(session: Session) -> None:
 
         session.execute(text("""
             INSERT INTO orders (id, code, buyer_id, fabric_type_id, quantity_cm, price_paise_per_m,
-                status, tracking_token, dispatch_by, dispatched_at, deleted_at, created_at)
-            VALUES (:id, :code, :bid, :ftid, :qty, :price, :st, :tok, :dby, :dat, NULL, :now)
+                status, tracking_token, due_date, created_at)
+            VALUES (:id, :code, :bid, :ftid, :qty, :price, :st, :tok, :dby, :now)
         """), {
             "id": oid, "code": code, "bid": str(buyer.id), "ftid": str(fab.id),
             "qty": qty_cm, "price": price, "st": status, "tok": tok,
             "dby": dispatch_date,
-            "dat": _dt(dispatch_date, 15),
             "now": _dt(order_date, 8),
         })
 
@@ -92,7 +91,7 @@ def _seed_named_orders(session: Session) -> None:
                 machine = _get_machine("SP-01")
             session.execute(text("""
                 INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty, waste_qty,
-                    machine_id, status, started_at, completed_at, created_at)
+                    machine_id, status, started_at, finished_at, created_at)
                 VALUES (:id, :code, :oid, :stage, :seq, 'cm', :qty, :pqty, :wqty,
                     :mid, 'completed', :start, :end, :now)
             """), {
@@ -111,15 +110,23 @@ def _seed_named_orders(session: Session) -> None:
         total_paise = qty_cm * price // 100  # qty_cm in cm, price per m, so /100
         paid_paise = total_paise if pay == "full" else (total_paise // 2 if pay == "half" else 0)
         inv_code = f"INV-{code[4:]}"  # INV-101 etc.
+        # Map pay status to invoice status values the schema uses
+        inv_status = "paid" if pay == "full" else ("issued" if pay == "half" else "issued")
+        gst_bp = 500  # 5% GST
+        gst_paise = total_paise * gst_bp // 10000
         session.execute(text("""
-            INSERT INTO invoices (id, code, order_id, amount_paise, paid_paise, status, issued_at, due_at, created_at)
-            VALUES (:id, :code, :oid, :amt, :paid, :st, :iss, :due, :now)
+            INSERT INTO invoices (id, number, buyer_id, order_id, issue_date, due_date,
+                subtotal_paise, gst_bp, gst_paise, total_paise, amount_paid_paise, status, created_at)
+            VALUES (:id, :num, :bid, :oid, :iss, :due,
+                :sub, :gstbp, :gst, :total, :paid, :st, :now)
         """), {
-            "id": inv_id, "code": inv_code, "oid": oid,
-            "amt": total_paise, "paid": paid_paise,
-            "st": "paid" if pay == "full" else ("partial" if pay == "half" else "unpaid"),
-            "iss": _dt(dispatch_date, 16),
-            "due": _dt(dispatch_date + dt.timedelta(days=30), 16),
+            "id": inv_id, "num": inv_code, "bid": str(buyer.id), "oid": oid,
+            "iss": dispatch_date,
+            "due": dispatch_date + dt.timedelta(days=30),
+            "sub": total_paise, "gstbp": gst_bp, "gst": gst_paise,
+            "total": total_paise + gst_paise,
+            "paid": paid_paise,
+            "st": inv_status,
             "now": _dt(dispatch_date, 16),
         })
 
@@ -166,9 +173,9 @@ def _seed_attendance(session: Session) -> None:
 
             session.execute(
                 text(
-                    "INSERT INTO attendance (id, worker_id, shift_code, date, checked_in_at, checked_out_at, "
-                    "overtime_minutes, status, created_at) "
-                    "VALUES (:id, :wid, :sc, :d, :ci, :co, :ot, :st, :now)"
+                    "INSERT INTO attendance (id, worker_id, shift_code, date, check_in_at, check_out_at, "
+                    "overtime_minutes, status, source, created_at) "
+                    "VALUES (:id, :wid, :sc, :d, :ci, :co, :ot, :st, 'seed', :now)"
                 ),
                 {
                     "id": str(uuid.uuid4()), "wid": str(w.id), "sc": shift_code,
@@ -217,15 +224,14 @@ def _seed_historical_orders(session: Session) -> None:
         session.execute(
             text(
                 "INSERT INTO orders (id, code, buyer_id, fabric_type_id, quantity_cm, price_paise_per_m, "
-                "status, tracking_token, dispatch_by, dispatched_at, deleted_at, created_at) "
-                "VALUES (:id, :code, :bid, :ftid, :qty, :price, 'dispatched', :tok, :dby, :dat, NULL, :now)"
+                "status, tracking_token, due_date, created_at) "
+                "VALUES (:id, :code, :bid, :ftid, :qty, :price, 'dispatched', :tok, :dby, :now)"
             ),
             {
                 "id": str(order_id), "code": order_code, "bid": str(buyer.id),
                 "ftid": str(ft.id), "qty": quantity_cm, "price": price_paise,
                 "tok": tracking_token,
                 "dby": date + dt.timedelta(days=3),
-                "dat": dispatched_at,
                 "now": _dt(date, 8),
             },
         )
@@ -241,7 +247,7 @@ def _seed_historical_orders(session: Session) -> None:
             session.execute(
                 text(
                     "INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty, waste_qty, "
-                    "machine_id, status, started_at, completed_at, created_at) "
+                    "machine_id, status, started_at, finished_at, created_at) "
                     "VALUES (:id, :code, :oid, :stage, :seq, 'cm', :qty, :pqty, :wqty, "
                     ":mid, 'completed', :start, :end, :now)"
                 ),
