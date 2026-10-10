@@ -6,6 +6,7 @@ import { formatDateTime } from "../../../lib/format";
 import PageHeader from "../../../components/ui/PageHeader";
 import Badge from "../../../components/ui/Badge";
 import Skeleton from "../../../components/ui/Skeleton";
+import ScanButton from "../../../components/ui/ScanButton";
 
 interface ScannedItem {
   roll_code: string;
@@ -67,22 +68,37 @@ export default function WorkerDispatchPage() {
 
       <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
         <label className="block text-sm font-medium text-gray-700">Scan Roll Code</label>
-        <input
-          type="text"
-          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg"
-          placeholder="Roll code"
-          value={rollCode}
-          onChange={(e) => setRollCode(e.target.value)}
+        <ScanButton
+          label="Scan Roll QR"
+          className="w-full justify-center"
+          onScan={(code) => {
+            setRollCode(code);
+            scanMutation.mutate(code);
+          }}
         />
-        <button
-          className="w-full bg-blue-600 text-white rounded-lg py-4 text-lg font-semibold active:bg-blue-700 disabled:opacity-50"
-          disabled={!rollCode || scanMutation.isPending}
-          onClick={() => scanMutation.mutate(rollCode)}
-        >
-          {scanMutation.isPending ? "Scanning..." : "Scan Roll"}
-        </button>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="Or enter roll code manually"
+            value={rollCode}
+            onChange={(e) => setRollCode(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && rollCode && scanMutation.mutate(rollCode)}
+          />
+          <button
+            className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium active:bg-blue-700 disabled:opacity-50"
+            disabled={!rollCode || scanMutation.isPending}
+            onClick={() => scanMutation.mutate(rollCode)}
+          >
+            Go
+          </button>
+        </div>
         {scanMutation.isError && (
-          <p className="text-red-600 text-sm text-center">Scan failed</p>
+          <p className="text-red-600 text-sm text-center">
+            {(scanMutation.error as Error)?.message?.includes("400")
+              ? "Roll blocked — wrong buyer, unpassed, or already dispatched"
+              : "Scan failed — try again"}
+          </p>
         )}
       </div>
 
