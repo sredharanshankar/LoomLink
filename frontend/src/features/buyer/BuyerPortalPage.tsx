@@ -33,7 +33,8 @@ interface OrdersResponse {
   total: number;
 }
 
-const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray"> = {
+const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray" | "red"> = {
+  pending_approval: "red",
   confirmed: "blue",
   in_production: "yellow",
   qc: "purple",

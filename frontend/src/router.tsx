@@ -91,7 +91,7 @@ export default function AppRouter() {
       {/* Public */}
       <Route element={<PublicShell />}>
         <Route path="/login" element={<Lazy><LoginPage /></Lazy>} />
-        <Route path="/pin" element={<Lazy><PinLoginPage /></Lazy>} />
+        <Route path="/pin" element={<Navigate to="/login" replace />} />
         <Route path="/track/:tracking_token" element={<Lazy><TrackPage /></Lazy>} />
         <Route path="/s/:code" element={<Lazy><ScanResolverPage /></Lazy>} />
       </Route>

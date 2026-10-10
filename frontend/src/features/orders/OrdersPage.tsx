@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { formatCm, formatDate } from "../../lib/format";
 import PageHeader from "../../components/ui/PageHeader";
@@ -31,7 +31,8 @@ interface HealthResponse {
   predicted_dispatch_at: string;
 }
 
-const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray"> = {
+const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray" | "red"> = {
+  pending_approval: "red",
   confirmed: "blue",
   in_production: "yellow",
   qc: "purple",
@@ -90,6 +91,7 @@ function exportOrdersCSV(orders: Order[]) {
 export default function OrdersPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (user?.role === "buyer") {
@@ -103,6 +105,18 @@ export default function OrdersPage() {
   const { data, isLoading, isError } = useQuery<OrdersResponse>({
     queryKey: ["orders"],
     queryFn: () => api.get("/orders?page=1&size=50"),
+  });
+
+  const pendingOrders = data?.items.filter((o) => o.status === "pending_approval") ?? [];
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/orders/${id}/approve`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/orders/${id}/reject`, { reason: "Rejected by owner" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] }),
   });
 
   const actionButton = canManage ? (
@@ -123,8 +137,47 @@ export default function OrdersPage() {
   ) : null;
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <PageHeader title="Orders" actions={actionButton} />
+
+      {/* Pending buyer order approvals — visible to owner/manager */}
+      {canManage && pendingOrders.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50">
+          <div className="px-4 py-3 border-b border-amber-200">
+            <h2 className="text-sm font-semibold text-amber-800">
+              Buyer Order Requests — {pendingOrders.length} pending approval
+            </h2>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pendingOrders.map((order) => (
+              <div key={order.id} className="px-4 py-3 flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{order.code}</p>
+                  <p className="text-xs text-gray-500">
+                    {order.buyer_name} · {order.fabric_type_name} · {formatCm(order.quantity_cm)} · Due {formatDate(order.due_date)}
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => approveMutation.mutate(order.id)}
+                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                    className="px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 font-medium"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => rejectMutation.mutate(order.id)}
+                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                    className="px-3 py-1 text-xs rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 font-medium"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading && <Skeleton rows={8} />}
 

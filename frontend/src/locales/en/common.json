@@ -94,6 +94,7 @@
   "job_status_paused": "Paused",
   "job_status_completed": "Completed",
   "job_status_cancelled": "Cancelled",
+  "order_status_pending_approval": "Pending Approval",
   "order_status_draft": "Draft",
   "order_status_confirmed": "Confirmed",
   "order_status_in_production": "In Production",
