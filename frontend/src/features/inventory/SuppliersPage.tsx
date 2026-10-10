@@ -61,7 +61,7 @@ export default function SuppliersPage() {
                     <td className="px-4 py-3 text-sm text-gray-900">{s.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{s.contact_person}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{s.phone}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{s.yarn_types_supplied.join(", ")}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{(s.yarn_types_supplied ?? []).join(", ")}</td>
                   </tr>
                 ))}
               </tbody>

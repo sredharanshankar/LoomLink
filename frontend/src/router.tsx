@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
 import WorkerShell from "./components/layout/WorkerShell";
 import PublicShell from "./components/layout/PublicShell";
@@ -73,8 +73,9 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function Lazy({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
   return (
-    <ErrorBoundary>
+    <ErrorBoundary key={pathname}>
       <Suspense fallback={<div className="flex h-full items-center justify-center p-12"><Spinner /></div>}>
         {children}
       </Suspense>
