@@ -76,7 +76,7 @@ export default function FinancePage() {
         </div>
       </section>
 
-      {receivables && receivables.items.length > 0 && (
+      {receivables && receivables.items?.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Outstanding Receivables</h2>
           <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
@@ -89,7 +89,7 @@ export default function FinancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {receivables.items.map((r) => (
+                {(receivables.items ?? []).map((r) => (
                   <tr key={r.buyer_name}>
                     <td className="px-4 py-3 text-gray-900">{r.buyer_name}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatPaise(r.amount_paise)}</td>
