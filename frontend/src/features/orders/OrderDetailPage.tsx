@@ -88,7 +88,9 @@ export default function OrderDetailPage() {
     );
   }
 
-  const producedTotal = order.jobs.reduce((sum, j) => sum + j.produced_qty, 0);
+  const jobs = order.jobs ?? [];
+  const rolls = order.rolls ?? [];
+  const producedTotal = jobs.reduce((sum, j) => sum + j.produced_qty, 0);
 
   return (
     <div className="p-6">
@@ -130,7 +132,7 @@ export default function OrderDetailPage() {
 
       <section className="mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Jobs</h2>
-        {order.jobs.length === 0 ? (
+        {jobs.length === 0 ? (
           <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-400">
             No jobs created yet.
           </div>
@@ -147,7 +149,7 @@ export default function OrderDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {order.jobs.map((job) => {
+                {jobs.map((job) => {
                   const pct = job.planned_qty > 0 ? Math.min(100, Math.round((job.produced_qty / job.planned_qty) * 100)) : 0;
                   return (
                     <tr key={job.id} className="hover:bg-gray-50">
@@ -179,7 +181,7 @@ export default function OrderDetailPage() {
         )}
       </section>
 
-      {order.rolls.length > 0 && (
+      {rolls.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Rolls</h2>
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -192,7 +194,7 @@ export default function OrderDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {order.rolls.map((roll) => (
+                {rolls.map((roll) => (
                   <tr key={roll.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{roll.code}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{formatCm(roll.length_cm)}</td>
