@@ -13,6 +13,8 @@ const LoginPage = lazy(() => import("./features/auth/LoginPage"));
 const PinLoginPage = lazy(() => import("./features/auth/PinLoginPage"));
 const ScanResolverPage = lazy(() => import("./features/scan/ScanResolverPage"));
 const TrackPage = lazy(() => import("./features/buyer/TrackPage"));
+const BuyerPortalPage = lazy(() => import("./features/buyer/BuyerPortalPage"));
+const BuyerOrderFormPage = lazy(() => import("./features/buyer/BuyerOrderFormPage"));
 
 // Console (/app/*)
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
@@ -121,6 +123,8 @@ export default function AppRouter() {
         <Route path="orders/:id" element={<Lazy><OrderDetailPage /></Lazy>} />
         <Route path="buyers" element={<Lazy><BuyersPage /></Lazy>} />
         <Route path="buyers/:id" element={<Lazy><BuyerDetailPage /></Lazy>} />
+        <Route path="buyer-portal" element={<Lazy><BuyerPortalPage /></Lazy>} />
+        <Route path="buyer-portal/new" element={<Lazy><BuyerOrderFormPage /></Lazy>} />
         <Route path="inventory" element={<Lazy><InventoryPage /></Lazy>} />
         <Route path="inventory/batches/:id" element={<Lazy><BatchDetailPage /></Lazy>} />
         <Route path="inventory/receive" element={<Lazy><ReceiveYarnPage /></Lazy>} />

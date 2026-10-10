@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { formatPaise } from "../../lib/format";
 import PageHeader from "../../components/ui/PageHeader";
 import Skeleton from "../../components/ui/Skeleton";
+import { useAuth } from "../../lib/auth";
 
 interface Buyer {
   id: string;
@@ -12,8 +14,8 @@ interface Buyer {
   contact_person: string;
   phone: string;
   email: string;
-  outstanding_paise: number;
-  orders_count: number;
+  outstanding_paise: number | undefined;
+  orders_count: number | undefined;
 }
 
 interface BuyersResponse {
@@ -21,9 +23,19 @@ interface BuyersResponse {
 }
 
 export default function BuyersPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role === "buyer") {
+      navigate("/app/buyer-portal", { replace: true });
+    }
+  }, [user, navigate]);
+
   const { data, isLoading, error } = useQuery<BuyersResponse>({
     queryKey: ["buyers"],
     queryFn: () => api.get("/buyers"),
+    enabled: user?.role !== "buyer",
   });
 
   const buyers = data?.items ?? [];
@@ -70,8 +82,8 @@ export default function BuyersPage() {
                     <td className="px-4 py-3 text-sm text-gray-900">{b.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{b.contact_person}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{b.phone}</td>
-                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatPaise(b.outstanding_paise)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-gray-600">{b.orders_count}</td>
+                    <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">{formatPaise(b.outstanding_paise ?? 0)}</td>
+                    <td className="px-4 py-3 text-sm text-right text-gray-600">{b.orders_count ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

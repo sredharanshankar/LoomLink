@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { formatCm, formatDate } from "../../lib/format";
@@ -88,6 +89,14 @@ function exportOrdersCSV(orders: Order[]) {
 
 export default function OrdersPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role === "buyer") {
+      navigate("/app/buyer-portal", { replace: true });
+    }
+  }, [user, navigate]);
+
   const canManage = can(user?.role, "orders:write");
   const isAccounts = user?.role === "accounts";
 

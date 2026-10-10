@@ -131,10 +131,25 @@ export default function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
 
-  const filteredGroups = NAV_GROUPS.map((g) => ({
-    ...g,
-    items: g.items.filter((item) => item.perm === null || can(user?.role, item.perm)),
-  })).filter((g) => g.items.length > 0);
+  const isBuyer = user?.role === "buyer";
+
+  const BUYER_NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+    {
+      label: "overview",
+      items: [{ to: "/app/dashboard", key: "dashboard", icon: LayoutDashboard, perm: null }],
+    },
+    {
+      label: "orders",
+      items: [{ to: "/app/buyer-portal", key: "myOrders", icon: ShoppingCart, perm: null }],
+    },
+  ];
+
+  const filteredGroups = isBuyer
+    ? BUYER_NAV_GROUPS
+    : NAV_GROUPS.map((g) => ({
+        ...g,
+        items: g.items.filter((item) => item.perm === null || can(user?.role, item.perm)),
+      })).filter((g) => g.items.length > 0);
 
   const sidebarContent = (
     <>
