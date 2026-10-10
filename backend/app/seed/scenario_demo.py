@@ -126,14 +126,16 @@ def _seed_active_orders(session: Session) -> None:
             """), {
                 "id": jid, "code": f"{code}-WEV",
                 "oid": oid, "qty": qty_cm,
-                "done": 55000,  # ~61% done at 11:00 (45m/h × 5h = 225m ≈ 22500 cm... let's say 55000)
+                "done": 55000,
                 "mid": str(m[0]) if m else None,
                 "start": _ts(6), "now": _ts(8, day_offset=-1),
             })
-            # Update WV-01 status to running
+            # Update WV-01 status to running and link current_job_id
             if m:
-                session.execute(text("UPDATE machines SET status='running' WHERE id=:mid"),
-                                {"mid": str(m[0])})
+                session.execute(text("""
+                    UPDATE machines SET status='running', current_job_id=:jid,
+                        status_changed_at=:ts WHERE id=:mid
+                """), {"mid": str(m[0]), "jid": jid, "ts": _ts(6)})
 
         elif code == "ORD-104":
             # Weaving on WV-02, 500m done, 700m left
@@ -147,13 +149,15 @@ def _seed_active_orders(session: Session) -> None:
             """), {
                 "id": jid, "code": f"{code}-WEV",
                 "oid": oid, "qty": qty_cm,
-                "done": 50000,  # 500m in cm
+                "done": 50000,
                 "mid": str(m[0]) if m else None,
                 "start": _ts(6, day_offset=-1), "now": _ts(8, day_offset=-1),
             })
             if m:
-                session.execute(text("UPDATE machines SET status='running' WHERE id=:mid"),
-                                {"mid": str(m[0])})
+                session.execute(text("""
+                    UPDATE machines SET status='running', current_job_id=:jid,
+                        status_changed_at=:ts WHERE id=:mid
+                """), {"mid": str(m[0]), "jid": jid, "ts": _ts(6, day_offset=-1)})
             # Subsequent stages queued
             for seq, stage in [(2, "dyeing"), (3, "finishing")]:
                 session.execute(text("""
@@ -190,13 +194,15 @@ def _seed_active_orders(session: Session) -> None:
             """), {
                 "id": jid, "code": f"{code}-WEV",
                 "oid": oid, "qty": qty_cm,
-                "done": 22000,  # running since yesterday
+                "done": 22000,
                 "mid": str(m[0]) if m else None,
                 "start": _ts(20, day_offset=-1), "now": _ts(8, day_offset=-1),
             })
             if m:
-                session.execute(text("UPDATE machines SET status='running' WHERE id=:mid"),
-                                {"mid": str(m[0])})
+                session.execute(text("""
+                    UPDATE machines SET status='running', current_job_id=:jid,
+                        status_changed_at=:ts WHERE id=:mid
+                """), {"mid": str(m[0]), "jid": jid, "ts": _ts(20, day_offset=-1)})
 
         elif code == "ORD-110":
             # Spinning on SP-01 (route R2)
@@ -215,18 +221,34 @@ def _seed_active_orders(session: Session) -> None:
                 "start": _ts(6), "now": _ts(8, day_offset=-1),
             })
             if m:
-                session.execute(text("UPDATE machines SET status='running' WHERE id=:mid"),
-                                {"mid": str(m[0])})
+                session.execute(text("""
+                    UPDATE machines SET status='running', current_job_id=:jid,
+                        status_changed_at=:ts WHERE id=:mid
+                """), {"mid": str(m[0]), "jid": jid, "ts": _ts(6)})
 
         elif code == "ORD-112":
             # Confirmed but blocked: blue yarn shortage
             pass
 
-    # DY-02 and FN-01 states
+    # FN-01: finishing a previous lot (ORD-102 finishing stage)
     fn = machine("FN-01")
-    if fn:
-        session.execute(text("UPDATE machines SET status='running' WHERE id=:mid"),
-                        {"mid": str(fn[0])})
+    ord102 = session.execute(text("SELECT id FROM orders WHERE code='ORD-102'")).fetchone()
+    if fn and ord102:
+        fn_jid = str(uuid.uuid4())
+        session.execute(text("""
+            INSERT INTO jobs (id, code, order_id, stage, seq, unit, planned_qty, produced_qty,
+                waste_qty, machine_id, status, started_at, finished_at, created_at)
+            VALUES (:id, :code, :oid, 'finishing', 2, 'cm', 90000, 41000, 0,
+                :mid, 'running', :start, NULL, :now)
+        """), {
+            "id": fn_jid, "code": "ORD-102-FIN",
+            "oid": str(ord102[0]), "mid": str(fn[0]),
+            "start": _ts(7), "now": _ts(8, day_offset=-1),
+        })
+        session.execute(text("""
+            UPDATE machines SET status='running', current_job_id=:jid,
+                status_changed_at=:ts WHERE id=:mid
+        """), {"mid": str(fn[0]), "jid": fn_jid, "ts": _ts(7)})
 
     # DY-02 stays idle (for Idle Hunter demo)
 

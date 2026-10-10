@@ -41,10 +41,16 @@ export function formatMinutes(minutes: number): string {
 
 const IST = "Asia/Kolkata";
 
-export function formatDateTime(utcIso: string): string {
-  return new Date(utcIso).toLocaleString("en-IN", { timeZone: IST, hour12: false });
+export function formatDateTime(utcIso: string | null | undefined): string {
+  if (!utcIso) return "—";
+  const d = new Date(utcIso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-IN", { timeZone: IST, hour12: false });
 }
 
-export function formatDate(utcIso: string): string {
-  return new Date(utcIso).toLocaleDateString("en-IN", { timeZone: IST });
+export function formatDate(utcIso: string | null | undefined): string {
+  if (!utcIso) return "—";
+  const d = new Date(utcIso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-IN", { timeZone: IST });
 }

@@ -627,9 +627,11 @@ def get_floor_map(session: Session) -> list[dict]:
         SELECT m.id, m.code, m.name, m.stage, m.floor_x, m.floor_y,
                m.status, m.current_job_id, m.status_changed_at,
                j.code AS job_code, j.produced_qty, j.planned_qty,
+               o.code AS order_code,
                jos.worker_id AS current_worker_id
         FROM machines m
         LEFT JOIN jobs j ON j.id = m.current_job_id
+        LEFT JOIN orders o ON o.id = j.order_id
         LEFT JOIN job_operator_sessions jos ON jos.job_id = m.current_job_id
             AND jos.ended_at IS NULL
         WHERE m.is_active = true
@@ -642,13 +644,10 @@ def get_floor_map(session: Session) -> list[dict]:
             "stage": r.stage, "floor_x": r.floor_x, "floor_y": r.floor_y,
             "status": r.status,
             "status_changed_at": r.status_changed_at.isoformat() if r.status_changed_at else None,
-            "current_job": {
-                "id": str(r.current_job_id),
-                "code": r.job_code,
-                "produced_qty": r.produced_qty,
-                "planned_qty": r.planned_qty,
-                "pct": round(100 * r.produced_qty / r.planned_qty, 1) if r.planned_qty else 0,
-            } if r.current_job_id else None,
+            "current_job_code": r.job_code,
+            "current_order_code": r.order_code,
+            "produced_qty": int(r.produced_qty) if r.produced_qty is not None else 0,
+            "planned_qty": int(r.planned_qty) if r.planned_qty is not None else 0,
             "current_operator_id": str(r.current_worker_id) if r.current_worker_id else None,
         }
         for r in rows
@@ -658,23 +657,22 @@ def get_floor_map(session: Session) -> list[dict]:
 def get_today_output(session: Session) -> list[dict]:
     today = app_time.today_local()
     rows = session.execute(text("""
-        SELECT m.code AS machine_code, m.stage,
-               j.id AS job_id, j.code AS job_code,
-               SUM(jpl.delta_qty) AS total_qty,
-               jpl.created_at::date AS log_date
-        FROM job_progress_logs jpl
-        JOIN jobs j ON j.id = jpl.job_id
+        SELECT m.stage,
+               COALESCE(SUM(j.produced_qty), 0) AS output_cm,
+               COALESCE(SUM(j.waste_qty), 0) AS waste_cm
+        FROM jobs j
         JOIN machines m ON m.id = j.machine_id
-        WHERE DATE(jpl.created_at AT TIME ZONE 'Asia/Kolkata') = :today
-        GROUP BY m.code, m.stage, j.id, j.code, jpl.created_at::date
-        ORDER BY m.stage, m.code
+        WHERE j.status IN ('running', 'completed')
+          AND DATE(j.started_at AT TIME ZONE 'Asia/Kolkata') = :today
+        GROUP BY m.stage
+        ORDER BY m.stage
     """), {"today": today}).fetchall()
 
     return [
         {
-            "machine_code": r.machine_code, "stage": r.stage,
-            "job_id": str(r.job_id), "job_code": r.job_code,
-            "total_qty": int(r.total_qty or 0),
+            "stage": r.stage,
+            "output_cm": int(r.output_cm),
+            "waste_cm": int(r.waste_cm),
         }
         for r in rows
     ]
