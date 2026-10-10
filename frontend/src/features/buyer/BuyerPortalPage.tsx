@@ -46,17 +46,23 @@ function formatStatus(s: string) {
 }
 
 export default function BuyerPortalPage() {
-  const { data: profile, isLoading: loadingProfile } = useQuery<BuyerProfile>({
+  const { data: profile, isLoading: loadingProfile, error: profileError } = useQuery<BuyerProfile>({
     queryKey: ["buyer-portal-me"],
     queryFn: () => api.get("/buyer/portal/me"),
     staleTime: 60_000,
+    retry: false,
   });
+
+  const noProfileLinked =
+    profileError instanceof Error &&
+    profileError.message.toLowerCase().includes("no buyer profile");
 
   const { data: orders, isLoading: loadingOrders } = useQuery<OrdersResponse>({
     queryKey: ["buyer-portal-orders"],
     queryFn: () => api.get("/buyer/portal/orders?page=1&size=50"),
     staleTime: 30_000,
     refetchInterval: 60_000,
+    enabled: !noProfileLinked,
   });
 
   const items = orders?.items ?? [];
@@ -76,6 +82,23 @@ export default function BuyerPortalPage() {
       Place New Order
     </Link>
   );
+
+  if (noProfileLinked) {
+    return (
+      <div className="p-6 max-w-lg">
+        <PageHeader title="My Portal" />
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          <p className="font-semibold mb-1">Account not linked to a buyer profile</p>
+          <p>
+            Your login account hasn't been connected to a buyer entity yet.
+            Please ask your LoomLink administrator to open{" "}
+            <strong>Settings → Users</strong>, find your account, and click{" "}
+            <strong>"Link Buyer"</strong>.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
