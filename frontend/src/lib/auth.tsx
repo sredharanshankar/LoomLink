@@ -25,6 +25,7 @@ interface AuthStore {
 
 // Access token + user in sessionStorage only; refresh token is never stored
 // (backend sets httpOnly ll_refresh cookie on login, sent automatically)
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
@@ -59,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (hydratedRef.current || !store.accessToken) return;
     hydratedRef.current = true;
     api.get<AuthUser>("/auth/me").then(store.setUser).catch(() => store.logout());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function login(employee_code: string, password: string) {
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

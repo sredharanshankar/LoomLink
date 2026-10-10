@@ -24,7 +24,8 @@ export default function Modal({ open, onClose, title, children, size = "md" }: M
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <div className="absolute inset-0 bg-black/40" role="presentation" onClick={onClose} onKeyDown={(e) => e.key === "Escape" && onClose()} />
       <div className={clsx("relative bg-white rounded-lg shadow-xl w-full", SIZES[size])}>
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
