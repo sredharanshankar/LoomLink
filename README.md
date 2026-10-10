@@ -27,16 +27,16 @@ Open **https://localhost:5173** (accept the self-signed certificate once).
 
 ### Demo logins
 
-| Role | Login | Password / PIN |
-|---|---|---|
-| Owner | owner@everest.test | Owner@123 |
-| Manager | manager@everest.test | Manager@123 |
-| Storekeeper | store@everest.test | Store@123 |
-| QC Inspector | qc@everest.test | Qc@12345 |
-| Dispatch | dispatch@everest.test | Dispatch@123 |
-| Accounts | accounts@everest.test | Accounts@123 |
-| Buyer | buyer.kaveri@everest.test | Buyer@123 |
-| Operator (any) | EMP-001 … EMP-012 | PIN 1234 |
+| Role | Employee Code | Password | PIN |
+|---|---|---|---|
+| Owner | OWN-001 | demo1234 | 100001 |
+| Manager | MGR-001 | demo1234 | 200002 |
+| Storekeeper | STK-001 | demo1234 | 300003 |
+| Operator | OPR-001 | — | 400004 |
+| QC Inspector | QCI-001 | demo1234 | 500005 |
+| Dispatch | DSP-001 | demo1234 | 600006 |
+| Accounts | ACC-001 | demo1234 | 700007 |
+| Buyer | BYR-001 | demo1234 | — |
 
 ---
 
