@@ -68,9 +68,9 @@ const WorkerQcPage = lazy(() => import("./features/workers/app/WorkerQcPage"));
 const WorkerDispatchPage = lazy(() => import("./features/workers/app/WorkerDispatchPage"));
 const WorkerMePage = lazy(() => import("./features/workers/app/WorkerMePage"));
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function RequireAuth({ children, redirectTo = "/login" }: { children: React.ReactNode; redirectTo?: string }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={redirectTo} replace />;
   return <>{children}</>;
 }
 
@@ -91,13 +91,13 @@ export default function AppRouter() {
       {/* Public */}
       <Route element={<PublicShell />}>
         <Route path="/login" element={<Lazy><LoginPage /></Lazy>} />
-        <Route path="/pin" element={<Navigate to="/login" replace />} />
+        <Route path="/pin" element={<Lazy><PinLoginPage /></Lazy>} />
         <Route path="/track/:tracking_token" element={<Lazy><TrackPage /></Lazy>} />
         <Route path="/s/:code" element={<Lazy><ScanResolverPage /></Lazy>} />
       </Route>
 
       {/* Worker app */}
-      <Route path="/w" element={<RequireAuth><WorkerShell /></RequireAuth>}>
+      <Route path="/w" element={<RequireAuth redirectTo="/pin"><WorkerShell /></RequireAuth>}>
         <Route index element={<Lazy><WorkerHomePage /></Lazy>} />
         <Route path="scan" element={<Lazy><WorkerScanPage /></Lazy>} />
         <Route path="jobs" element={<Lazy><WorkerJobsPage /></Lazy>} />
