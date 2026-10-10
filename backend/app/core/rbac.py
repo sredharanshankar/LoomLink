@@ -26,6 +26,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "ripple.view", "ripple.manage", "ripple.apply",
         "leak.view",
         "bol.use",
+        "demo.reset",
     },
     "manager": {
         "settings.view",

@@ -251,6 +251,52 @@ def order_timeline(
 
 
 # ---------------------------------------------------------------------------
+# Public buyer tracking (no auth required)
+# ---------------------------------------------------------------------------
+
+@router.get("/orders/track/{token}")
+def track_order(token: str, db=Depends(get_db)):
+    from sqlalchemy import text
+    row = db.execute(text("""
+        SELECT o.code, o.status, o.quantity_cm, o.due_date, o.promised_date,
+               o.updated_at, o.created_at,
+               b.name AS buyer_name,
+               ft.name AS fabric_type_name,
+               ft.colour AS fabric_colour
+        FROM orders o
+        JOIN buyers b ON b.id = o.buyer_id
+        JOIN fabric_types ft ON ft.id = o.fabric_type_id
+        WHERE o.tracking_token = :tok
+    """), {"tok": token}).fetchone()
+    if not row:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Order not found")
+    # Count rolls ready (passed QC) — rolls.order_id links directly to orders
+    rolls = db.execute(text("""
+        SELECT COUNT(*) FROM rolls r
+        JOIN orders o ON o.id = r.order_id
+        WHERE o.tracking_token = :tok AND r.status = 'passed'
+    """), {"tok": token}).scalar() or 0
+    metres_ready = db.execute(text("""
+        SELECT COALESCE(SUM(r.length_cm), 0) FROM rolls r
+        JOIN orders o ON o.id = r.order_id
+        WHERE o.tracking_token = :tok AND r.status = 'passed'
+    """), {"tok": token}).scalar() or 0
+    ship_date = row.promised_date or row.due_date
+    return {
+        "order_number": row.code,
+        "status": row.status,
+        "fabric_type": row.fabric_type_name,
+        "fabric_colour": row.fabric_colour,
+        "quantity_m": round(row.quantity_cm / 100, 1),
+        "metres_ready": round(metres_ready / 100, 1),
+        "rolls_passed": rolls,
+        "expected_ship_date": ship_date.isoformat() if ship_date else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else row.created_at.isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # serializers
 # ---------------------------------------------------------------------------
 
