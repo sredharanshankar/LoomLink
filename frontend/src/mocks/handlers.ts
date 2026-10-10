@@ -1,8 +1,9 @@
-﻿import { http, HttpResponse } from "msw";
+﻿import { http, HttpResponse, passthrough } from "msw";
 import {
   machines, yarnTypes, suppliers, fabricTypes, buyers, workers,
   routeTemplates, orders, jobs, yarnBatches, rolls, dispatches, invoices,
 } from "./fixtures/index";
+import { isMocked } from "./config";
 
 const BASE = "/api/v1";
 
@@ -62,111 +63,138 @@ export const handlers = [
   ),
 
   // Inventory
-  http.get(BASE + "/yarn-types", ({ request }) =>
-    HttpResponse.json(paginate(yarnTypes, new URL(request.url)))
-  ),
-  http.get(BASE + "/yarn-batches", ({ request }) =>
-    HttpResponse.json(paginate(yarnBatches, new URL(request.url)))
-  ),
+  http.get(BASE + "/yarn-types", ({ request }) => {
+    if (!isMocked("inventory")) return passthrough();
+    return HttpResponse.json(paginate(yarnTypes, new URL(request.url)));
+  }),
+  http.get(BASE + "/yarn-batches", ({ request }) => {
+    if (!isMocked("inventory")) return passthrough();
+    return HttpResponse.json(paginate(yarnBatches, new URL(request.url)));
+  }),
   http.get(BASE + "/yarn-batches/:id", ({ params }) => {
-    const b = yarnBatches.find(x => x.id === params.id || x.code === params.id);
+    if (!isMocked("inventory")) return passthrough();
+    const b = yarnBatches.find((x) => x.id === params.id || x.code === params.id);
     return b ? HttpResponse.json(b) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/suppliers", ({ request }) =>
-    HttpResponse.json(paginate(suppliers, new URL(request.url)))
-  ),
-  http.get(BASE + "/purchase-orders", ({ request }) =>
-    HttpResponse.json(paginate([], new URL(request.url)))
-  ),
+  http.get(BASE + "/suppliers", ({ request }) => {
+    if (!isMocked("inventory")) return passthrough();
+    return HttpResponse.json(paginate(suppliers, new URL(request.url)));
+  }),
+  http.get(BASE + "/purchase-orders", ({ request }) => {
+    if (!isMocked("inventory")) return passthrough();
+    return HttpResponse.json(paginate([], new URL(request.url)));
+  }),
 
   // Orders
-  http.get(BASE + "/fabric-types", ({ request }) =>
-    HttpResponse.json(paginate(fabricTypes, new URL(request.url)))
-  ),
-  http.get(BASE + "/buyers", ({ request }) =>
-    HttpResponse.json(paginate(buyers, new URL(request.url)))
-  ),
+  http.get(BASE + "/fabric-types", ({ request }) => {
+    if (!isMocked("orders")) return passthrough();
+    return HttpResponse.json(paginate(fabricTypes, new URL(request.url)));
+  }),
+  http.get(BASE + "/buyers", ({ request }) => {
+    if (!isMocked("orders")) return passthrough();
+    return HttpResponse.json(paginate(buyers, new URL(request.url)));
+  }),
   http.get(BASE + "/buyers/:id", ({ params }) => {
+    if (!isMocked("orders")) return passthrough();
     const b = buyers.find(x => x.id === params.id || x.code === params.id);
     return b ? HttpResponse.json(b) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/orders", ({ request }) =>
-    HttpResponse.json(paginate(orders, new URL(request.url)))
-  ),
+  http.get(BASE + "/orders", ({ request }) => {
+    if (!isMocked("orders")) return passthrough();
+    return HttpResponse.json(paginate(orders, new URL(request.url)));
+  }),
   http.get(BASE + "/orders/:id", ({ params }) => {
+    if (!isMocked("orders")) return passthrough();
     const o = orders.find(x => x.id === params.id || x.code === params.id);
     return o ? HttpResponse.json(o) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/route-templates", ({ request }) =>
-    HttpResponse.json(paginate(routeTemplates, new URL(request.url)))
-  ),
+  http.get(BASE + "/route-templates", ({ request }) => {
+    if (!isMocked("orders")) return passthrough();
+    return HttpResponse.json(paginate(routeTemplates, new URL(request.url)));
+  }),
 
   // Production
-  http.get(BASE + "/machines", ({ request }) =>
-    HttpResponse.json(paginate(machines, new URL(request.url)))
-  ),
+  http.get(BASE + "/machines", ({ request }) => {
+    if (!isMocked("production")) return passthrough();
+    return HttpResponse.json(paginate(machines, new URL(request.url)));
+  }),
   http.get(BASE + "/machines/:id", ({ params }) => {
+    if (!isMocked("production")) return passthrough();
     const m = machines.find(x => x.id === params.id || x.code === params.id);
     return m ? HttpResponse.json(m) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/production/floor", () =>
-    HttpResponse.json(machines)
-  ),
-  http.get(BASE + "/jobs", ({ request }) =>
-    HttpResponse.json(paginate(jobs, new URL(request.url)))
-  ),
+  http.get(BASE + "/production/floor", () => {
+    if (!isMocked("production")) return passthrough();
+    return HttpResponse.json(machines);
+  }),
+  http.get(BASE + "/jobs", ({ request }) => {
+    if (!isMocked("production")) return passthrough();
+    return HttpResponse.json(paginate(jobs, new URL(request.url)));
+  }),
   http.get(BASE + "/jobs/:id", ({ params }) => {
-    const j = jobs.find(x => x.id === params.id);
+    if (!isMocked("production")) return passthrough();
+    const j = jobs.find((x) => x.id === params.id);
     return j ? HttpResponse.json(j) : new HttpResponse(null, { status: 404 });
   }),
 
   // Quality
-  http.get(BASE + "/rolls", ({ request }) =>
-    HttpResponse.json(paginate(rolls, new URL(request.url)))
-  ),
+  http.get(BASE + "/rolls", ({ request }) => {
+    if (!isMocked("quality")) return passthrough();
+    return HttpResponse.json(paginate(rolls, new URL(request.url)));
+  }),
   http.get(BASE + "/rolls/:id", ({ params }) => {
+    if (!isMocked("quality")) return passthrough();
     const r = rolls.find(x => x.id === params.id || x.code === params.id);
     return r ? HttpResponse.json(r) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/quality/queues", () =>
-    HttpResponse.json({
+  http.get(BASE + "/quality/queues", () => {
+    if (!isMocked("quality")) return passthrough();
+    return HttpResponse.json({
       pending_qc: rolls.filter(r => r.status === "pending_qc"),
       passed: rolls.filter(r => r.status === "passed"),
       rework: rolls.filter(r => r.status === "rework"),
       rejected: rolls.filter(r => r.status === "rejected"),
-    })
-  ),
+    });
+  }),
 
   // Dispatch
-  http.get(BASE + "/dispatches", ({ request }) =>
-    HttpResponse.json(paginate(dispatches, new URL(request.url)))
-  ),
+  http.get(BASE + "/dispatches", ({ request }) => {
+    if (!isMocked("dispatch")) return passthrough();
+    return HttpResponse.json(paginate(dispatches, new URL(request.url)));
+  }),
   http.get(BASE + "/dispatches/:id", ({ params }) => {
-    const d = dispatches.find(x => x.id === params.id);
+    if (!isMocked("dispatch")) return passthrough();
+    const d = dispatches.find((x) => x.id === params.id);
     return d ? HttpResponse.json(d) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/dispatch/finished-stock", () =>
-    HttpResponse.json(rolls.filter(r => r.status === "passed"))
-  ),
+  http.get(BASE + "/dispatch/finished-stock", () => {
+    if (!isMocked("dispatch")) return passthrough();
+    return HttpResponse.json(rolls.filter(r => r.status === "passed"));
+  }),
 
   // Workers
-  http.get(BASE + "/workers", ({ request }) =>
-    HttpResponse.json(paginate(workers, new URL(request.url)))
-  ),
+  http.get(BASE + "/workers", ({ request }) => {
+    if (!isMocked("workers")) return passthrough();
+    return HttpResponse.json(paginate(workers, new URL(request.url)));
+  }),
   http.get(BASE + "/workers/:id", ({ params }) => {
-    const w = workers.find(x => x.id === params.id);
+    if (!isMocked("workers")) return passthrough();
+    const w = workers.find((x) => x.id === params.id || x.emp_code === params.id);
     return w ? HttpResponse.json(w) : new HttpResponse(null, { status: 404 });
   }),
-  http.get(BASE + "/attendance", () =>
-    HttpResponse.json({ items: [], total: 0 })
-  ),
+  http.get(BASE + "/attendance", () => {
+    if (!isMocked("workers")) return passthrough();
+    return HttpResponse.json({ items: [], total: 0 });
+  }),
 
   // Finance
-  http.get(BASE + "/invoices", ({ request }) =>
-    HttpResponse.json(paginate(invoices, new URL(request.url)))
-  ),
+  http.get(BASE + "/invoices", ({ request }) => {
+    if (!isMocked("finance")) return passthrough();
+    return HttpResponse.json(paginate(invoices, new URL(request.url)));
+  }),
   http.get(BASE + "/invoices/:id", ({ params }) => {
-    const inv = invoices.find(x => x.id === params.id);
+    if (!isMocked("finance")) return passthrough();
+    const inv = invoices.find((x) => x.id === params.id);
     return inv ? HttpResponse.json(inv) : new HttpResponse(null, { status: 404 });
   }),
 

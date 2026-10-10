@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
 import WorkerShell from "./components/layout/WorkerShell";
 import PublicShell from "./components/layout/PublicShell";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { useAuth } from "./lib/auth";
 import Spinner from "./components/ui/Spinner";
 import { rippleRoutes } from "./features/ripple/index";
@@ -48,6 +49,8 @@ const SettingsPage = lazy(() => import("./features/admin/SettingsPage"));
 const UsersPage = lazy(() => import("./features/admin/UsersPage"));
 const AuditPage = lazy(() => import("./features/admin/AuditPage"));
 
+const NotFoundPage = lazy(() => import("./features/misc/NotFoundPage"));
+
 // Worker app (/w/*)
 const WorkerHomePage = lazy(() => import("./features/workers/app/WorkerHomePage"));
 const WorkerScanPage = lazy(() => import("./features/workers/app/WorkerScanPage"));
@@ -61,6 +64,7 @@ const WorkerReceivePage = lazy(() => import("./features/workers/app/WorkerReceiv
 const WorkerRollPage = lazy(() => import("./features/workers/app/WorkerRollPage"));
 const WorkerQcPage = lazy(() => import("./features/workers/app/WorkerQcPage"));
 const WorkerDispatchPage = lazy(() => import("./features/workers/app/WorkerDispatchPage"));
+const WorkerMePage = lazy(() => import("./features/workers/app/WorkerMePage"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -70,9 +74,11 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function Lazy({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="flex h-full items-center justify-center p-12"><Spinner /></div>}>
-      {children}
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="flex h-full items-center justify-center p-12"><Spinner /></div>}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -101,6 +107,7 @@ export default function AppRouter() {
         <Route path="roll/:id" element={<Lazy><WorkerRollPage /></Lazy>} />
         <Route path="qc" element={<Lazy><WorkerQcPage /></Lazy>} />
         <Route path="dispatch/:id" element={<Lazy><WorkerDispatchPage /></Lazy>} />
+        <Route path="me" element={<Lazy><WorkerMePage /></Lazy>} />
       </Route>
 
       {/* Console app */}
@@ -153,7 +160,7 @@ export default function AppRouter() {
       </Route>
 
       <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="*" element={<Lazy><NotFoundPage /></Lazy>} />
     </Routes>
   );
 }
