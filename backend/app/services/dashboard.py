@@ -116,13 +116,14 @@ def get_daily_brief(session: Session) -> dict:
     """), {"today": today}).fetchall()
 
     low_stock_items = session.execute(text("""
-        SELECT yt.name AS yarn_name, yt.code AS yarn_code,
+        SELECT (yt.material || ' ' || yt.count_label || ' ' || yt.colour) AS yarn_name,
+               yt.code AS yarn_code,
                COALESCE(SUM(sm.qty_g), 0) AS on_hand_g,
                yt.reorder_level_g
         FROM yarn_types yt
         LEFT JOIN yarn_batches yb ON yb.yarn_type_id = yt.id
         LEFT JOIN stock_movements sm ON sm.batch_id = yb.id
-        GROUP BY yt.id, yt.name, yt.code, yt.reorder_level_g
+        GROUP BY yt.id, yt.material, yt.count_label, yt.colour, yt.code, yt.reorder_level_g
         HAVING COALESCE(SUM(sm.qty_g), 0) <= yt.reorder_level_g
         LIMIT 10
     """)).fetchall()

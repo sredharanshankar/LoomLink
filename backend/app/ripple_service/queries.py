@@ -120,22 +120,37 @@ def event_to_dict(session: Session, row: RippleEvent, *, include_fixes: bool = T
     )
     trigger_kind = getattr(row.trigger_kind, "value", row.trigger_kind) or ""
     params = row.params or {}
-    severity = params.get("severity", "medium")
+    # Derive severity from at_risk_paise when not explicitly set
+    severity = params.get("severity")
+    if not severity:
+        risk = row.at_risk_paise or 0
+        if risk >= 50_000_00:      # ≥₹50,000
+            severity = "high"
+        elif risk >= 10_000_00:    # ≥₹10,000
+            severity = "medium"
+        else:
+            severity = "low"
     affected = row.affected_orders or []
-    affected_order_codes = [o.get("order_code", "") for o in affected if isinstance(o, dict)]
+    affected_order_codes = [o.get("code") or o.get("order_code", "") for o in affected if isinstance(o, dict)]
     title_key = row.title_key or trigger_kind
     machine = params.get("machine_code", "")
-    title = title_key.replace("ripple.", "").replace("_", " ").title()
+    # Strip full i18n prefix for display: "ripple.title.machine_breakdown" → "Machine Breakdown"
+    display_title = title_key
+    for prefix in ("ripple.title.", "ripple."):
+        if display_title.startswith(prefix):
+            display_title = display_title[len(prefix):]
+            break
+    display_title = display_title.replace("_", " ").title()
     if machine:
-        title = f"{machine} — {title}"
-    summary = f"Affected orders: {', '.join(affected_order_codes) if affected_order_codes else 'none'}"
+        display_title = f"{machine} — {display_title}"
+    summary = f"Affected orders: {', '.join(c for c in affected_order_codes if c) if affected_order_codes else 'none'}"
     return {
         "id": row.id,
         "code": row.code,
         "event_type": trigger_kind,
         "trigger_event_id": row.trigger_event_id,
         "trigger_kind": trigger_kind,
-        "title": title,
+        "title": display_title,
         "title_key": row.title_key,
         "summary": summary,
         "severity": severity,

@@ -75,11 +75,13 @@ def list_bills(
     user=Depends(require_permission("finance.view")),
     db=Depends(get_db),
 ):
-    items, total = svc.list_supplier_bills(db, {
+    items = svc.list_supplier_bills(db, {
         "supplier_id": str(supplier_id) if supplier_id else None,
-        "status": status, "page": page, "size": size,
+        "status": status,
     })
-    return {"items": items, "total": total, "page": page, "size": size}
+    total = len(items)
+    start = (page - 1) * size
+    return {"items": items[start:start + size], "total": total, "page": page, "size": size}
 
 
 @router.post("/supplier-bills", status_code=201)
@@ -124,11 +126,12 @@ def list_expenses(
     user=Depends(require_permission("finance.view")),
     db=Depends(get_db),
 ):
-    items, total = svc.list_expenses(db, {
+    items = svc.list_expenses(db, {
         "category": category, "date_from": date_from, "date_to": date_to,
-        "page": page, "size": size,
     })
-    return {"items": items, "total": total, "page": page, "size": size}
+    total = len(items)
+    start = (page - 1) * size
+    return {"items": items[start:start + size], "total": total, "page": page, "size": size}
 
 
 @router.post("/expenses", status_code=201)
