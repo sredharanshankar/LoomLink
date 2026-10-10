@@ -15,7 +15,7 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-const DASHBOARD = "/dashboard";
+const DASHBOARD = "/app/dashboard";
 
 export default function LoginPage() {
   const { t } = useTranslation();

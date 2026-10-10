@@ -5,15 +5,17 @@ import { can } from "../../lib/permissions";
 import { clsx } from "clsx";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", key: "dashboard", perm: null },
-  { to: "/inventory", key: "inventory", perm: "inventory:read" as const },
-  { to: "/orders", key: "orders", perm: "orders:read" as const },
-  { to: "/production", key: "production", perm: "production:read" as const },
-  { to: "/quality", key: "quality", perm: "quality:read" as const },
-  { to: "/dispatch", key: "dispatch", perm: "dispatch:read" as const },
-  { to: "/workers", key: "workers", perm: "workers:read" as const },
-  { to: "/finance", key: "finance", perm: "finance:read" as const },
-  { to: "/ripple", key: "ripple", perm: "ripple:read" as const },
+  { to: "/app/dashboard", key: "dashboard", perm: null },
+  { to: "/app/inventory", key: "inventory", perm: "inventory:read" as const },
+  { to: "/app/orders", key: "orders", perm: "orders:read" as const },
+  { to: "/app/buyers", key: "buyers", perm: "orders:read" as const },
+  { to: "/app/production", key: "production", perm: "production:read" as const },
+  { to: "/app/machines", key: "machines", perm: "production:read" as const },
+  { to: "/app/quality", key: "quality", perm: "quality:read" as const },
+  { to: "/app/dispatch", key: "dispatch", perm: "dispatch:read" as const },
+  { to: "/app/workers", key: "workers", perm: "workers:read" as const },
+  { to: "/app/finance", key: "finance", perm: "finance:read" as const },
+  { to: "/app/ripple", key: "ripple", perm: "ripple:read" as const },
 ];
 
 export default function AppShell() {

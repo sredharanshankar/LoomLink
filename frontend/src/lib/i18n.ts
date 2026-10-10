@@ -1,6 +1,10 @@
-import i18n from "i18next";
+﻿import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
+import enCommon from "../locales/en/common.json";
+import hiCommon from "../locales/hi/common.json";
+import teCommon from "../locales/te/common.json";
+import taCommon from "../locales/ta/common.json";
 
 i18n
   .use(LanguageDetector)
@@ -12,40 +16,10 @@ i18n
     ns: ["common", "ripple"],
     interpolation: { escapeValue: false },
     resources: {
-      en: {
-        common: {
-          save: "Save",
-          cancel: "Cancel",
-          confirm: "Confirm",
-          loading: "Loading…",
-          error: "Error",
-          success: "Success",
-          search: "Search",
-          noResults: "No results",
-          login: "Log In",
-          logout: "Log Out",
-          dashboard: "Dashboard",
-          inventory: "Inventory",
-          orders: "Orders",
-          production: "Production",
-          quality: "Quality",
-          dispatch: "Dispatch",
-          workers: "Workers",
-          finance: "Finance",
-          ripple: "Ripple",
-          admin: "Admin",
-          scanPin: "Scan / PIN",
-          settings: "Settings",
-          employee_code: "Employee ID",
-          password: "Password",
-          pin: "6-digit PIN",
-          loginWith: "Log in with {{method}}",
-        },
-        ripple: {},
-      },
-      hi: { common: { login: "लॉग इन", dashboard: "डैशबोर्ड" }, ripple: {} },
-      te: { common: { login: "లాగిన్", dashboard: "డాష్‌బోర్డ్" }, ripple: {} },
-      ta: { common: { login: "உள்நுழைவு", dashboard: "டாஷ்போர்டு" }, ripple: {} },
+      en: { common: enCommon, ripple: {} },
+      hi: { common: hiCommon, ripple: {} },
+      te: { common: teCommon, ripple: {} },
+      ta: { common: taCommon, ripple: {} },
     },
   });
 
