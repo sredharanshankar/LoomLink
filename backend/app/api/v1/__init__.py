@@ -3,7 +3,7 @@ from app.api.v1 import (
     auth, health, settings as settings_router, ws,
     scan, labels, inventory, orders, production, quality,
     dispatch, workers, finance, dashboard, users,
-    ripple, leak, bol, buyer_line,
+    ripple, leak, bol, buyer_line, buyer_portal,
 )
 from app.config import get_settings
 
@@ -28,6 +28,7 @@ router.include_router(ripple.router, tags=["ripple"])
 router.include_router(leak.router, tags=["leak"])
 router.include_router(bol.router, tags=["bol"])
 router.include_router(buyer_line.router, tags=["buyer-line"])
+router.include_router(buyer_portal.router, tags=["buyer-portal"])
 # Demo-only routers (mounted conditionally)
 if get_settings().demo_mode:
     from app.api.v1 import simulator, demo
