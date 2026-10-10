@@ -12,3 +12,9 @@ A: Vite proxy ws:true needed for WebSocket — CONTRACT/DEPENDENCY REQUEST to La
 A: Domain schema *Out models created as minimal Pydantic stubs with from_attributes=True; full fields added as Lane A implements each service endpoint.
 A: requirements.lock committed via pip list --format=freeze for reproducible installs without pip-compile in CI.
 A: contract_coverage test skips /ws (WebSocket, not REST) and /buyer-line/whatsapp/webhook (provider-signed, not token-auth) in CONTRACT §6 path assertions.
+C: Console routes moved from bare paths to /app/* prefix per CONTRACT ss9.3; AppShell and LoginPage updated to match.
+C: locales/*/common.json populated from i18n-glossary.md (en/hi/te/ta); lib/i18n.ts now imports JSON files instead of inline strings.
+C: MSW handlers expanded with fixture data for all GET endpoints (machines, batches, orders, workers, invoices, etc.).
+C: Feature page stubs created for all ss9.3 console routes (/app/*) and worker routes (/w/*); full data wiring in C-M1.
+C: Worker app pages live under features/workers/app/ to co-locate with workers feature slice per Lane C ownership.
+C: Additional UI components added: StatusPill, PageHeader, EmptyState, Skeleton, KpiTile, Select, NumberInput, Drawer, Tabs, Toast, ConfirmDialog, ScanButton per CONTRACT ss9.1 requirements.
