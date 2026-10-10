@@ -14,7 +14,7 @@ case "$TARGET" in
   test) docker compose exec backend pytest tests/ -v && docker compose exec frontend npm test ;;
   test-core) docker compose exec backend pytest tests/ -v ;;
   test-ripple) docker compose exec backend pytest tests/ripple/ -v ;;
-  test-web) docker compose exec frontend npm test ;;
+  test-web) docker compose run --rm frontend npm test ;;
   e2e) docker compose exec frontend npx playwright test ;;
   lint)
     docker compose exec backend ruff check app/ tests/
@@ -27,7 +27,7 @@ case "$TARGET" in
     docker compose exec frontend npm run lint -- --fix
     ;;
   gen-api)
-    docker compose exec backend python backend/scripts/export_openapi.py
+    docker compose exec backend python scripts/export_openapi.py
     docker compose exec frontend npm run gen:api
     ;;
   migrate) docker compose exec backend alembic upgrade head ;;

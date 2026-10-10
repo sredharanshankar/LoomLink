@@ -1,8 +1,7 @@
 .PHONY: setup dev down logs demo-reset test test-core test-ripple test-web e2e lint fmt gen-api migrate makemigration
 
 setup:
-	git config core.hooksPath .githooks
-	@if not exist .env (copy .env.example .env)
+	@if [ -f scripts/dev.sh ]; then bash scripts/dev.sh setup; else scripts/dev.ps1 setup; fi
 
 dev:
 	docker compose up -d
@@ -27,7 +26,7 @@ test-ripple:
 	docker compose exec backend pytest tests/ripple/ -v
 
 test-web:
-	docker compose exec frontend npm test
+	docker compose run --rm frontend npm test
 
 e2e:
 	docker compose exec frontend npx playwright test
@@ -43,7 +42,7 @@ fmt:
 	docker compose exec frontend npm run lint -- --fix
 
 gen-api:
-	docker compose exec backend python backend/scripts/export_openapi.py
+	docker compose exec backend python scripts/export_openapi.py
 	docker compose exec frontend npm run gen:api
 
 migrate:
