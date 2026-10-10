@@ -1,7 +1,7 @@
 ﻿import { http, HttpResponse } from "msw";
 import {
   machines, yarnTypes, suppliers, fabricTypes, buyers, workers,
-  routeTemplates, orders, jobs, batches, rolls, dispatches, invoices,
+  routeTemplates, orders, jobs, yarnBatches, rolls, dispatches, invoices,
 } from "./fixtures/index";
 
 const BASE = "/api/v1";
@@ -66,10 +66,10 @@ export const handlers = [
     HttpResponse.json(paginate(yarnTypes, new URL(request.url)))
   ),
   http.get(BASE + "/yarn-batches", ({ request }) =>
-    HttpResponse.json(paginate(batches, new URL(request.url)))
+    HttpResponse.json(paginate(yarnBatches, new URL(request.url)))
   ),
   http.get(BASE + "/yarn-batches/:id", ({ params }) => {
-    const b = batches.find(x => x.id === params.id || x.code === params.id);
+    const b = yarnBatches.find(x => x.id === params.id || x.code === params.id);
     return b ? HttpResponse.json(b) : new HttpResponse(null, { status: 404 });
   }),
   http.get(BASE + "/suppliers", ({ request }) =>
@@ -116,7 +116,7 @@ export const handlers = [
     HttpResponse.json(paginate(jobs, new URL(request.url)))
   ),
   http.get(BASE + "/jobs/:id", ({ params }) => {
-    const j = jobs.find(x => x.id === params.id || x.code === params.id);
+    const j = jobs.find(x => x.id === params.id);
     return j ? HttpResponse.json(j) : new HttpResponse(null, { status: 404 });
   }),
 
@@ -142,7 +142,7 @@ export const handlers = [
     HttpResponse.json(paginate(dispatches, new URL(request.url)))
   ),
   http.get(BASE + "/dispatches/:id", ({ params }) => {
-    const d = dispatches.find(x => x.id === params.id || x.code === params.id);
+    const d = dispatches.find(x => x.id === params.id);
     return d ? HttpResponse.json(d) : new HttpResponse(null, { status: 404 });
   }),
   http.get(BASE + "/dispatch/finished-stock", () =>
@@ -154,7 +154,7 @@ export const handlers = [
     HttpResponse.json(paginate(workers, new URL(request.url)))
   ),
   http.get(BASE + "/workers/:id", ({ params }) => {
-    const w = workers.find(x => x.id === params.id || x.code === params.id);
+    const w = workers.find(x => x.id === params.id);
     return w ? HttpResponse.json(w) : new HttpResponse(null, { status: 404 });
   }),
   http.get(BASE + "/attendance", () =>
@@ -166,7 +166,7 @@ export const handlers = [
     HttpResponse.json(paginate(invoices, new URL(request.url)))
   ),
   http.get(BASE + "/invoices/:id", ({ params }) => {
-    const inv = invoices.find(x => x.id === params.id || x.code === params.id);
+    const inv = invoices.find(x => x.id === params.id);
     return inv ? HttpResponse.json(inv) : new HttpResponse(null, { status: 404 });
   }),
 
