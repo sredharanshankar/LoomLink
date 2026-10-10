@@ -111,7 +111,7 @@ def create_order(session: Session, body: dict, user: dict) -> Any:
         due_date=body["due_date"],
         promised_date=body.get("promised_date"),
         priority=body.get("priority", "normal"),
-        status="draft",
+        status=body.get("_initial_status", "draft"),
         late_penalty_paise_per_day=int(
             body.get("late_penalty_paise_per_day")
             or buyer.default_late_penalty_paise_per_day

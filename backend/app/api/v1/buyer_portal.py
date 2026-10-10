@@ -102,6 +102,7 @@ def buyer_create_order(
 ):
     buyer_id = _resolve_buyer_id(user, db)
     body["buyer_id"] = str(buyer_id)
+    body["_initial_status"] = "pending_approval"
     order = ord_svc.create_order(db, body, user)
     db.commit()
     return ord_svc.get_order(db, order.id, user)

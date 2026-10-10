@@ -54,6 +54,7 @@ class JobStatus(str, enum.Enum):
 
 
 class OrderStatus(str, enum.Enum):
+    pending_approval = "pending_approval"
     draft = "draft"
     confirmed = "confirmed"
     in_production = "in_production"
