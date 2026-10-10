@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.events import start_dispatcher, set_loop
+from app import ripple_service
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     set_loop(asyncio.get_event_loop())
     start_dispatcher()
+    ripple_service.register()
     yield
 
 
