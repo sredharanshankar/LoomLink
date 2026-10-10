@@ -6,7 +6,7 @@ import { ApiError } from "../../lib/api";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 
-const DASHBOARD = "/dashboard";
+const WORKER_APP = "/w";
 
 export default function PinLoginPage() {
   const { t } = useTranslation();
@@ -26,7 +26,7 @@ export default function PinLoginPage() {
     setError("");
     try {
       await pinLogin(pin);
-      navigate(DASHBOARD, { replace: true });
+      navigate(WORKER_APP, { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Invalid PIN");
       setPin("");
