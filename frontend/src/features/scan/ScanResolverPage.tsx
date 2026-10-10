@@ -23,6 +23,7 @@ export default function ScanResolverPage() {
       undefined
     ).catch((err) => setError(String(err)));
     return () => { qr.isScanning && qr.stop().catch(() => {}); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
   function resolve(raw: string) {

@@ -68,7 +68,7 @@ async function request<T>(
     let body: { error?: { code: string; message: string; details?: Record<string, unknown> } } = {};
     try {
       body = await res.json();
-    } catch {}
+    } catch { /* ignore non-JSON error bodies */ }
     const err = body.error;
     throw new ApiError(err?.code ?? "HTTP_ERROR", err?.message ?? res.statusText, res.status, err?.details);
   }

@@ -10,8 +10,7 @@ const WS_BASE = (() => {
 })();
 
 let ws: WebSocket | null = null;
-let handlers: Map<string, Set<Handler>> = new Map();
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+const handlers: Map<string, Set<Handler>> = new Map();
 
 function connect(token: string) {
   if (ws?.readyState === WebSocket.OPEN || ws?.readyState === WebSocket.CONNECTING) return;
@@ -25,10 +24,10 @@ function connect(token: string) {
         handlers.get(prefix)?.forEach((h) => h(msg));
       }
       handlers.get("*")?.forEach((h) => h(msg));
-    } catch {}
+    } catch { /* ignore malformed WS messages */ }
   };
   ws.onclose = () => {
-    reconnectTimer = setTimeout(() => {
+    setTimeout(() => {
       const t = useAuthStore.getState().accessToken;
       if (t) connect(t);
     }, 3000);
