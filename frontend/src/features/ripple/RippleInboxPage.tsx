@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import { AlertTriangle, CheckCircle, Clock, Zap } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, RefreshCw, Zap } from "lucide-react";
 import { clsx } from "clsx";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 interface RippleEvent {
   id: string;
@@ -38,17 +40,38 @@ function SeverityBadge({ s }: { s: RippleEvent["severity"] }) {
 
 export default function RippleInboxPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const canManage = can(user?.role, "ripple:read") && (user?.role === "owner" || user?.role === "manager");
+
   const { data, isLoading, isError } = useQuery<RippleEventList>({
     queryKey: ["ripple-events"],
     queryFn: () => api.get("/ripple/events"),
     refetchInterval: 30_000,
   });
 
+  const recomputeMutation = useMutation({
+    mutationFn: () => api.post("/ripple/recompute", {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["ripple-events"] }),
+  });
+
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center gap-3">
-        <Zap className="h-6 w-6 text-amber-500" />
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{t("ripple", "Ripple Inbox")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Zap className="h-6 w-6 text-amber-500" />
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{t("ripple", "Ripple Inbox")}</h1>
+        </div>
+        {canManage && (
+          <button
+            onClick={() => recomputeMutation.mutate()}
+            disabled={recomputeMutation.isPending}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={clsx("h-3.5 w-3.5", { "animate-spin": recomputeMutation.isPending })} />
+            {recomputeMutation.isPending ? "Computing…" : t("btn_run_ripple", "Recompute Ripple")}
+          </button>
+        )}
       </div>
 
       {isLoading && (
