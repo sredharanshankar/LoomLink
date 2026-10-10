@@ -257,11 +257,27 @@ def get_order(session: Session, order_id: uuid.UUID, user: dict | None = None) -
             for i in inv_rows
         ]
 
+    # enrich with human-readable names
+    names = session.execute(text("""
+        SELECT b.name AS buyer_name, ft.name AS fabric_type_name
+        FROM orders o
+        LEFT JOIN buyers b ON b.id = o.buyer_id
+        LEFT JOIN fabric_types ft ON ft.id = o.fabric_type_id
+        WHERE o.id = :oid
+    """), {"oid": order_id}).fetchone()
+
+    rolls_list = session.execute(text("""
+        SELECT id, code, length_cm, grade, status FROM rolls
+        WHERE order_id = :oid ORDER BY created_at
+    """), {"oid": order_id}).fetchall()
+
     return {
         "id": str(order.id),
         "code": order.code,
         "buyer_id": str(order.buyer_id),
+        "buyer_name": names.buyer_name if names else None,
         "fabric_type_id": str(order.fabric_type_id),
+        "fabric_type_name": names.fabric_type_name if names else None,
         "quantity_cm": order.quantity_cm,
         "price_paise_per_m": order.price_paise_per_m,
         "due_date": order.due_date.isoformat(),
@@ -290,6 +306,10 @@ def get_order(session: Session, order_id: uuid.UUID, user: dict | None = None) -
         "rolls_summary": [
             {"status": r.status, "count": r.count, "total_cm": int(r.total_cm or 0)}
             for r in rolls_summary
+        ],
+        "rolls": [
+            {"id": str(r.id), "code": r.code, "length_cm": r.length_cm, "grade": r.grade, "status": r.status}
+            for r in rolls_list
         ],
         "dispatches": [
             {
