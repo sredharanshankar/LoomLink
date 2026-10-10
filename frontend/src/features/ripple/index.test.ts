@@ -1,4 +1,6 @@
+import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -23,16 +25,25 @@ describe("Ripple feature contract", () => {
   });
 
   it("exposes renderable placeholder components", () => {
+    const queryClient = new QueryClient();
     const components = [
-      OrderHealthBadge({ orderId: "order-1" }),
-      PromiseDatePanel({ draft: {} }),
-      RippleFloor({}),
-      RippleInboxWidget({}),
-      LeakMeterWidget({}),
-      IdleHunterWidget({}),
-      RippleLiveToaster(),
+      createElement(OrderHealthBadge, { orderId: "order-1" }),
+      createElement(PromiseDatePanel, { draft: {} }),
+      createElement(RippleFloor),
+      createElement(RippleInboxWidget),
+      createElement(LeakMeterWidget),
+      createElement(IdleHunterWidget),
+      createElement(RippleLiveToaster),
     ];
 
-    expect(components.map((component) => renderToStaticMarkup(component))).toHaveLength(7);
+    expect(() =>
+      renderToStaticMarkup(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(Fragment, null, ...components),
+        ),
+      ),
+    ).not.toThrow();
   });
 });
