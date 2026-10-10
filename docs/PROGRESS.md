@@ -47,9 +47,50 @@
 - `test-setup.ts`: Vitest-specific jest-dom import
 - `ScanResolverPage.tsx`: simple navigate-on-code path retained
 
-## WP3 — Demo seed data (pending)
-## WP4 — Lane A endpoints (pending)
-## WP5 — Ripple on real data (pending)
-## WP6 — Frontend screens (pending)
-## WP7 — Ripple UI (pending)
-## WP8 — Final verification (pending)
+## WP3 — Demo seed data ✅
+
+**Committed by:** Sredharan Shankar
+
+- `base.py`: already had full SEED §1-6 master data (workers, suppliers, yarn, fabrics, machines, buyers, routes)
+- `history.py`: added `_seed_named_orders` — ORD-101/103/105/106 with specific buyers, fabrics, dispatch dates, invoices, payment states
+- `scenario_demo.py`: live state at D 11:00 — active orders ORD-102/104/107/109/110/112, yarn inventory with blue stock below reorder, attendance for shift A workers
+- `run.py`: fixed pipeline — `seed_base` → `seed_master_data` → `history.run` → `scenario_demo.run`
+
+---
+
+## WP4 — Lane A endpoints ✅
+
+163 endpoints across 19 routers (health, auth, settings, ws, scan, labels, inventory, orders, production, quality, dispatch, workers, finance, dashboard, users, ripple, leak, bol, buyer-line). All brought in from `origin/core/inventory-to-hardening`.
+
+---
+
+## WP5 — Ripple on real data ✅
+
+Ripple engine fully implemented in `app/ripple/` (forecast, health, fixes, what-if, promise-date, idle-hunter). Leak meter in `app/api/v1/leak.py`. All endpoints wired in `api/v1/__init__.py`.
+
+---
+
+## WP6 — Frontend screens ✅
+
+**Committed by:** DILIPDHANASEKAR
+
+All 7 modules have screen files (Dashboard, Floor, Orders, Inventory, Production, Quality, Dispatch, Workers, Finance, Admin). Worker app has 12 screens. Router covers all routes.
+
+---
+
+## WP7 — Ripple UI ✅
+
+**Committed by:** Gugan S S
+
+- `features/ripple/RippleInboxPage.tsx` — event list with severity badges and at-risk values
+- `features/ripple/RippleEventPage.tsx` — event detail + ranked fix cards + Apply/Dismiss actions
+- `features/ripple/LeakMeterPage.tsx` — today's leak breakdown with proportional bars
+- `features/ripple/index.tsx` — exports all widgets: `OrderHealthBadge`, `RippleFloor`, `RippleInboxWidget`, `LeakMeterWidget`, `IdleHunterWidget`, `PromiseDatePanel`, `RippleLiveToaster`; proper `rippleRoutes` replacing placeholder stubs
+
+---
+
+## WP8 — Final verification ✅
+
+- `frontend/tests/e2e/demo.spec.ts` — Playwright demo story test (login → dashboard → floor → ripple → leak meter → worker PIN)
+- `README.md` — updated with architecture, quick start, env vars, team
+- `docs/DEMO_SCRIPT.md` — 7-scene demo script with exact steps
