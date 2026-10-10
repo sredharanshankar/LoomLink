@@ -286,24 +286,22 @@ def _seed_workers_and_users(session: Session) -> None:
                 "lang": w["preferred_language"],
                 "now": now(),
             })
-        # Create operator user account (PIN 1234)
-        existing_u = session.execute(
-            text("SELECT id FROM users WHERE employee_code = :code"), {"code": w["code"]}
-        ).fetchone()
-        if not existing_u:
-            session.execute(text("""
-                INSERT INTO users (id, employee_code, name, role, pin_hash,
-                    worker_id, preferred_language, is_active, created_at)
-                VALUES (:id, :code, :name, 'operator', :pin, :wid, :lang, true, :now)
-            """), {
-                "id": str(uuid.uuid4()),
-                "code": w["code"],
-                "name": w["name"],
-                "pin": hash_pin("1234"),
-                "wid": worker_id,
-                "lang": w["preferred_language"],
-                "now": now(),
-            })
+        # Create operator user account (PIN 1234) — upsert so re-seeding keeps PIN in sync
+        fresh_pin = hash_pin("1234")
+        session.execute(text("""
+            INSERT INTO users (id, employee_code, name, role, pin_hash,
+                worker_id, preferred_language, is_active, created_at)
+            VALUES (:id, :code, :name, 'operator', :pin, :wid, :lang, true, :now)
+            ON CONFLICT (employee_code) DO UPDATE SET pin_hash = :pin
+        """), {
+            "id": str(uuid.uuid4()),
+            "code": w["code"],
+            "name": w["name"],
+            "pin": fresh_pin,
+            "wid": worker_id,
+            "lang": w["preferred_language"],
+            "now": now(),
+        })
     # Update EMP sequence
     from sqlalchemy import text as txt
     session.execute(txt("""
