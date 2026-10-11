@@ -1,10 +1,13 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { formatCm, formatDateTime } from "../../lib/format";
 import PageHeader from "../../components/ui/PageHeader";
 import Badge from "../../components/ui/Badge";
 import Skeleton from "../../components/ui/Skeleton";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 interface Inspection {
   id: string;
@@ -23,10 +26,16 @@ interface Roll {
   length_cm: number;
   status: string;
   grade?: string;
-  defects?: Defect[];
+  defects?: unknown[];
   inspections?: Inspection[];
   inspected_at?: string | null;
   inspected_by?: string | null;
+}
+
+interface InspectBody {
+  decision: string;
+  measured_length_cm: number;
+  notes?: string;
 }
 
 const GRADE_COLORS: Record<string, "green" | "yellow" | "red" | "gray"> = {
@@ -41,12 +50,39 @@ function formatStatus(status: string): string {
 
 export default function RollDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [decision, setDecision] = useState("pass");
+  const [measuredLength, setMeasuredLength] = useState("");
+  const [notes, setNotes] = useState("");
+  const [formError, setFormError] = useState("");
 
   const { data: roll, isLoading, isError } = useQuery<Roll>({
     queryKey: ["roll", id],
     queryFn: () => api.get(`/rolls/${id}`),
     enabled: !!id,
   });
+
+  const inspectMutation = useMutation({
+    mutationFn: (body: InspectBody) => api.post(`/rolls/${id}/inspections`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roll", id] });
+      setMeasuredLength("");
+      setNotes("");
+      setFormError("");
+    },
+    onError: (err: Error) => setFormError(err.message || "Inspection failed"),
+  });
+
+  function handleInspect(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError("");
+    if (!measuredLength) { setFormError("Measured length is required."); return; }
+    const cm = Math.round(parseFloat(measuredLength) * 100);
+    if (isNaN(cm) || cm <= 0) { setFormError("Enter a valid length in metres."); return; }
+    inspectMutation.mutate({ decision, measured_length_cm: cm, notes: notes || undefined });
+  }
 
   if (isLoading) return <div className="p-6"><Skeleton rows={6} /></div>;
 
@@ -102,6 +138,61 @@ export default function RollDetailPage() {
           )}
         </dl>
       </div>
+
+      {/* Inspection form — shown only when roll needs QC and user can inspect */}
+      {(roll.status === "pending_qc" || roll.status === "rework") && can(user?.role, "quality:write") && (
+        <div className="bg-blue-50 rounded-lg border border-blue-200 p-5 mb-6">
+          <h2 className="text-lg font-semibold text-blue-900 mb-4">Record Inspection</h2>
+          <form onSubmit={handleInspect} className="space-y-4">
+            {formError && (
+              <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">{formError}</div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Decision *</label>
+                <select
+                  value={decision}
+                  onChange={(e) => setDecision(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pass">Pass</option>
+                  <option value="rework">Rework</option>
+                  <option value="reject">Reject</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Measured Length (metres) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={measuredLength}
+                  onChange={(e) => setMeasuredLength(e.target.value)}
+                  placeholder={roll.length_cm ? `Expected ${(roll.length_cm / 100).toFixed(2)} m` : "e.g. 50.00"}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional remarks"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={inspectMutation.isPending}
+              className="inline-flex items-center justify-center rounded-md font-medium h-10 px-5 text-sm bg-blue-700 text-white hover:bg-blue-800 transition-colors disabled:opacity-50"
+            >
+              {inspectMutation.isPending ? "Saving…" : "Submit Inspection"}
+            </button>
+          </form>
+        </div>
+      )}
 
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Inspections</h2>
