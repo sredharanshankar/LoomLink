@@ -17,7 +17,7 @@ interface Machine {
   name: string;
   stage: string;
   status: string;
-  current_job: { id: string; code: string; stage: string; order_code: string; fabric_type: string; quantity_cm: number } | null;
+  current_job: { id: string; code: string; stage: string; order_code: string; fabric_type: string; quantity_cm: number; planned_qty: number; produced_qty: number } | null;
   speeds: Speed[];
 }
 
@@ -89,15 +89,30 @@ export default function MachineDetailPage() {
           </Badge>
         </div>
         {machine.current_job ? (
-          <div className="bg-green-50 rounded-lg border border-green-200 p-4">
+          <div className="bg-green-50 rounded-lg border border-green-200 p-4 md:col-span-1">
             <p className="text-sm text-gray-500 mb-1">Running Process</p>
             <p className="text-lg font-bold text-green-800">{formatStatus(machine.current_job.stage)}</p>
             <Link to={`/app/jobs/${machine.current_job.id}`} className="text-blue-600 hover:underline text-sm font-medium">
               {machine.current_job.code}
             </Link>
             <p className="text-xs text-gray-500 mt-1">
-              Order: {machine.current_job.order_code} &nbsp;·&nbsp; {machine.current_job.fabric_type} &nbsp;·&nbsp; {formatCm(machine.current_job.quantity_cm)}
+              Order: <span className="font-medium text-gray-700">{machine.current_job.order_code}</span>
+              &nbsp;·&nbsp; {machine.current_job.fabric_type}
             </p>
+            {machine.current_job.planned_qty > 0 && (() => {
+              const pct = Math.min(100, Math.round((machine.current_job!.produced_qty / machine.current_job!.planned_qty) * 100));
+              return (
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>{formatCm(machine.current_job!.produced_qty)} done</span>
+                    <span>{pct}%</span>
+                  </div>
+                  <div className="w-full bg-green-200 rounded-full h-1.5">
+                    <div className="bg-green-600 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 p-4">

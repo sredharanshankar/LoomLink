@@ -50,22 +50,27 @@ def get_machine(
     from sqlalchemy import text
     machine = md.get_machine(db, id)
     caps = md.get_machine_capabilities(db, id)
+    # Try current_job_id first; fall back to any running job on this machine
     current_job = None
-    if machine.current_job_id:
-        row = db.execute(text("""
-            SELECT j.id, j.code, j.stage, o.code AS order_code,
-                   ft.name AS fabric_type, o.quantity_cm
-            FROM jobs j
-            LEFT JOIN orders o ON o.id = j.order_id
-            LEFT JOIN fabric_types ft ON ft.id = o.fabric_type_id
-            WHERE j.id = :jid
-        """), {"jid": str(machine.current_job_id)}).fetchone()
-        if row:
-            current_job = {
-                "id": str(row.id), "code": row.code, "stage": row.stage,
-                "order_code": row.order_code, "fabric_type": row.fabric_type,
-                "quantity_cm": row.quantity_cm,
-            }
+    job_filter = "j.id = :jid" if machine.current_job_id else "j.machine_id = :jid AND j.status = 'running'"
+    job_param = str(machine.current_job_id) if machine.current_job_id else str(id)
+    row = db.execute(text(f"""
+        SELECT j.id, j.code, j.stage, j.planned_qty, j.produced_qty,
+               o.code AS order_code,
+               ft.name AS fabric_type, o.quantity_cm
+        FROM jobs j
+        LEFT JOIN orders o ON o.id = j.order_id
+        LEFT JOIN fabric_types ft ON ft.id = o.fabric_type_id
+        WHERE {job_filter}
+        LIMIT 1
+    """), {"jid": job_param}).fetchone()
+    if row:
+        current_job = {
+            "id": str(row.id), "code": row.code, "stage": row.stage,
+            "order_code": row.order_code, "fabric_type": row.fabric_type,
+            "quantity_cm": row.quantity_cm,
+            "planned_qty": row.planned_qty, "produced_qty": row.produced_qty,
+        }
     return _machine_out(machine, caps, current_job)
 
 
