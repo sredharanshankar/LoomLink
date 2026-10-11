@@ -43,7 +43,7 @@ interface Props {
 }
 
 export default function StatusPill({ status, label, size = "md" }: Props) {
-  const color = COLOR[status] ?? "bg-gray-100 text-gray-700";
+  const color = COLOR[status ?? ""] ?? "bg-gray-100 text-gray-700";
   return (
     <span
       className={clsx(
@@ -52,7 +52,7 @@ export default function StatusPill({ status, label, size = "md" }: Props) {
         color
       )}
     >
-      {label ?? status.replace(/_/g, " ")}
+      {label ?? (status ?? "unknown").replace(/_/g, " ")}
     </span>
   );
 }

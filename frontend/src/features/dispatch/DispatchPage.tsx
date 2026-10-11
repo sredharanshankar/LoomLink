@@ -10,18 +10,22 @@ import StatusPill from "../../components/ui/StatusPill";
 interface Dispatch {
   id: string;
   code: string;
+  order_code: string;
   buyer_name: string;
   status: string;
-  rolls_count: number;
+  dispatched_at: string | null;
   created_at: string;
 }
 
 interface FinishedStock {
+  id: string;
+  code: string;
   order_code: string;
-  roll_code: string;
+  buyer_name: string;
   length_cm: number;
-  status: string;
-  location: string;
+  weight_g: number;
+  shelf_location: string | null;
+  created_at: string;
 }
 
 export default function DispatchPage() {
@@ -50,19 +54,19 @@ export default function DispatchPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Order</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Roll</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Buyer</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-500">Length (cm)</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Location</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {stock?.items.map((s) => (
-                  <tr key={s.roll_code}>
+                  <tr key={s.id}>
                     <td className="px-4 py-3 text-gray-900">{s.order_code}</td>
-                    <td className="px-4 py-3 font-mono text-gray-700">{s.roll_code}</td>
+                    <td className="px-4 py-3 font-mono text-gray-700">{s.code}</td>
+                    <td className="px-4 py-3 text-gray-700">{s.buyer_name}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{s.length_cm.toLocaleString("en-IN")}</td>
-                    <td className="px-4 py-3"><StatusPill status={s.status} size="sm" /></td>
-                    <td className="px-4 py-3 text-gray-700">{s.location}</td>
+                    <td className="px-4 py-3 text-gray-700">{s.shelf_location ?? "—"}</td>
                   </tr>
                 ))}
                 {stock?.items.length === 0 && (
@@ -84,9 +88,9 @@ export default function DispatchPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Code</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-500">Order</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Buyer</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Rolls</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Created</th>
                 </tr>
               </thead>
@@ -98,9 +102,9 @@ export default function DispatchPage() {
                         {d.code}
                       </Link>
                     </td>
+                    <td className="px-4 py-3 text-gray-700">{d.order_code}</td>
                     <td className="px-4 py-3 text-gray-900">{d.buyer_name}</td>
                     <td className="px-4 py-3"><StatusPill status={d.status} size="sm" /></td>
-                    <td className="px-4 py-3 text-right tabular-nums">{d.rolls_count}</td>
                     <td className="px-4 py-3 text-gray-500">{formatDateTime(d.created_at)}</td>
                   </tr>
                 ))}
