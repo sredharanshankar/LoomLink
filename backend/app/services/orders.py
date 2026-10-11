@@ -111,7 +111,7 @@ def create_order(session: Session, body: dict, user: dict) -> Any:
         due_date=body["due_date"],
         promised_date=body.get("promised_date"),
         priority=body.get("priority", "normal"),
-        status=body.get("_initial_status", "draft"),
+        status="draft",
         late_penalty_paise_per_day=int(
             body.get("late_penalty_paise_per_day")
             or buyer.default_late_penalty_paise_per_day
@@ -257,27 +257,20 @@ def get_order(session: Session, order_id: uuid.UUID, user: dict | None = None) -
             for i in inv_rows
         ]
 
-    # enrich with human-readable names
-    names = session.execute(text("""
-        SELECT b.name AS buyer_name, ft.name AS fabric_type_name
-        FROM orders o
-        LEFT JOIN buyers b ON b.id = o.buyer_id
-        LEFT JOIN fabric_types ft ON ft.id = o.fabric_type_id
-        WHERE o.id = :oid
-    """), {"oid": order_id}).fetchone()
-
-    rolls_list = session.execute(text("""
-        SELECT id, code, length_cm, grade, status FROM rolls
-        WHERE order_id = :oid ORDER BY created_at
-    """), {"oid": order_id}).fetchall()
+    buyer_row = session.execute(text(
+        "SELECT name FROM buyers WHERE id = :bid"
+    ), {"bid": order.buyer_id}).fetchone()
+    fab_row = session.execute(text(
+        "SELECT name FROM fabric_types WHERE id = :fid"
+    ), {"fid": order.fabric_type_id}).fetchone()
 
     return {
         "id": str(order.id),
         "code": order.code,
         "buyer_id": str(order.buyer_id),
-        "buyer_name": names.buyer_name if names else None,
+        "buyer_name": buyer_row.name if buyer_row else "",
         "fabric_type_id": str(order.fabric_type_id),
-        "fabric_type_name": names.fabric_type_name if names else None,
+        "fabric_type_name": fab_row.name if fab_row else "",
         "quantity_cm": order.quantity_cm,
         "price_paise_per_m": order.price_paise_per_m,
         "due_date": order.due_date.isoformat(),
@@ -306,10 +299,6 @@ def get_order(session: Session, order_id: uuid.UUID, user: dict | None = None) -
         "rolls_summary": [
             {"status": r.status, "count": r.count, "total_cm": int(r.total_cm or 0)}
             for r in rolls_summary
-        ],
-        "rolls": [
-            {"id": str(r.id), "code": r.code, "length_cm": r.length_cm, "grade": r.grade, "status": r.status}
-            for r in rolls_list
         ],
         "dispatches": [
             {

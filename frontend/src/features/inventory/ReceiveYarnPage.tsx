@@ -75,7 +75,7 @@ export default function ReceiveYarnPage() {
     mutation.mutate({
       yarn_type_id: yarnTypeId,
       supplier_id: supplierId,
-      qty_g: qtyG,
+      received_g: qtyG,
       rate_paise_per_kg: rate,
     });
   }

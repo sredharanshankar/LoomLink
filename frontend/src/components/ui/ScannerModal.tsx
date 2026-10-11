@@ -140,41 +140,45 @@ export default function ScannerModal({ open, onClose, onScan }: Props) {
       {permDenied ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center text-white">
           <p className="text-5xl">📷</p>
-          <p className="text-xl font-semibold">Camera access denied</p>
+          <p className="text-xl font-semibold">Camera not available</p>
           <p className="text-sm text-white/70 max-w-xs">
-            Allow camera access in your browser or system settings, then reload the page and try again.
+            Use the field below to enter a machine or item code manually.
           </p>
-          <Button variant="secondary" onClick={onClose}>Close</Button>
         </div>
       ) : (
         <>
           <div className="flex-1 flex items-center justify-center overflow-hidden">
             <div id={QR_ELEMENT_ID} className="w-full max-w-sm" />
           </div>
-
-          <div className="shrink-0 px-4 pb-8 pt-3 space-y-3 bg-gradient-to-t from-black to-transparent">
-            {torchSupported && cameraReady && (
-              <Button variant="secondary" className="w-full" onClick={toggleTorch}>
-                {torchOn ? "🔦 Torch Off" : "🔦 Torch On"}
-              </Button>
-            )}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={manual}
-                onChange={(e) => setManual(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && submitManual()}
-                placeholder="Enter code manually…"
-                className="flex-1 rounded-md border border-gray-600 bg-gray-800 text-white px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                aria-label="Manual code entry"
-              />
-              <Button onClick={submitManual} disabled={!manual.trim()}>
-                Go
-              </Button>
-            </div>
-          </div>
         </>
       )}
+
+      <div className="shrink-0 px-4 pb-8 pt-3 space-y-3 bg-gradient-to-t from-black to-transparent">
+        {!permDenied && torchSupported && cameraReady && (
+          <Button variant="secondary" className="w-full" onClick={toggleTorch}>
+            {torchOn ? "🔦 Torch Off" : "🔦 Torch On"}
+          </Button>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={manual}
+            onChange={(e) => setManual(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submitManual()}
+            placeholder="Enter code manually (e.g. WV-01, ORD-104)…"
+            className="flex-1 rounded-md border border-gray-600 bg-gray-800 text-white px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            aria-label="Manual code entry"
+          />
+          <Button onClick={submitManual} disabled={!manual.trim()}>
+            Go
+          </Button>
+        </div>
+        {permDenied && (
+          <Button variant="secondary" className="w-full" onClick={onClose}>
+            Close
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
