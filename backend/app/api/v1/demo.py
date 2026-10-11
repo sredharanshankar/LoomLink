@@ -131,3 +131,43 @@ def demo_reset(
     db.commit()
 
     return {"status": "reset", "message": "Mill reset to demo state D 11:00"}
+
+
+@router.post("/demo/seed-rolls")
+def demo_seed_rolls(
+    user=Depends(require_permission("demo.reset")),
+    db=Depends(get_db),
+):
+    """
+    Create 3 pending-QC rolls from the FN-01 finishing job so the QC inspector
+    has something to inspect in the demo.
+    """
+    from app.core.time import now as app_now
+
+    fn_job = db.execute(text("SELECT id, order_id FROM jobs WHERE code='ORD-102-FIN'")).fetchone()
+    if not fn_job:
+        return {"status": "skipped", "reason": "ORD-102-FIN job not found — run /demo/patch-jobs first"}
+
+    now = app_now()
+    created = []
+    for i, length_cm in enumerate([5000, 4800, 5200]):
+        roll_id = str(uuid.uuid4())
+        code = f"ROL-DEMO-{i+1:02d}"
+        # skip if already exists
+        existing = db.execute(text("SELECT id FROM rolls WHERE code = :code"), {"code": code}).fetchone()
+        if existing:
+            created.append(f"{code} (already exists)")
+            continue
+        db.execute(text("""
+            INSERT INTO rolls (id, code, order_id, finishing_job_id, length_cm, status, created_at)
+            VALUES (:id, :code, :oid, :jid, :lcm, 'pending_qc', :now)
+        """), {
+            "id": roll_id, "code": code,
+            "oid": str(fn_job[1]),
+            "jid": str(fn_job[0]),
+            "lcm": length_cm, "now": now,
+        })
+        created.append(code)
+
+    db.commit()
+    return {"status": "seeded", "rolls": created}
