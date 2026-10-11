@@ -1,11 +1,13 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { formatCm, formatDate, formatDateTime } from "../../lib/format";
 import PageHeader from "../../components/ui/PageHeader";
 import Badge from "../../components/ui/Badge";
 import KpiTile from "../../components/ui/KpiTile";
 import Skeleton from "../../components/ui/Skeleton";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 interface Job {
   id: string;
@@ -64,6 +66,18 @@ function formatStatus(status: string): string {
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const approveMutation = useMutation({
+    mutationFn: () => api.post(`/orders/${id}/approve`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["order", id] }),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: () => api.post(`/orders/${id}/reject`, { reason: "Rejected by owner" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["order", id] }),
+  });
 
   const { data: order, isLoading, isError } = useQuery<OrderDetail>({
     queryKey: ["order", id],
@@ -107,8 +121,26 @@ export default function OrderDetailPage() {
             <Badge color={STATUS_COLORS[order.status] ?? "gray"}>
               {formatStatus(order.status)}
             </Badge>
-            <Link to="/app/orders" className="text-sm text-gray-500 hover:text-gray-700">
-              Back to Orders
+            {order.status === "pending" && can(user?.role, "orders:write") && (
+              <>
+                <button
+                  onClick={() => approveMutation.mutate()}
+                  disabled={approveMutation.isPending}
+                  className="inline-flex items-center justify-center rounded-lg font-medium text-sm h-9 px-4 bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {approveMutation.isPending ? "Approving…" : "✓ Approve"}
+                </button>
+                <button
+                  onClick={() => rejectMutation.mutate()}
+                  disabled={rejectMutation.isPending}
+                  className="inline-flex items-center justify-center rounded-lg font-medium text-sm h-9 px-4 bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {rejectMutation.isPending ? "Rejecting…" : "✕ Reject"}
+                </button>
+              </>
+            )}
+            <Link to="/app/orders" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              ← Back
             </Link>
           </div>
         }
