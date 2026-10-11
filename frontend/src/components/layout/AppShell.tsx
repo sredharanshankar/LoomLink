@@ -151,23 +151,34 @@ export default function AppShell() {
         items: g.items.filter((item) => item.perm === null || can(user?.role, item.perm)),
       })).filter((g) => g.items.length > 0);
 
+  const initials = user?.full_name
+    ? user.full_name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
+    : "?";
+
   const sidebarContent = (
     <>
-      <div className="px-5 py-4 border-b border-brand-800 flex items-center justify-between shrink-0">
-        <span className="text-lg font-bold tracking-tight text-white">LoomLink</span>
+      {/* Logo */}
+      <div className="h-14 px-4 flex items-center justify-between shrink-0 border-b border-white/[0.07]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center shrink-0 shadow-lg shadow-brand-900/50">
+            <span className="text-white font-bold text-xs leading-none">L</span>
+          </div>
+          <span className="text-[15px] font-semibold tracking-tight text-white">LoomLink</span>
+        </div>
         <button
-          className="md:hidden text-brand-300 hover:text-white"
+          className="md:hidden p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-colors"
           onClick={() => setSidebarOpen(false)}
           aria-label="Close menu"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto scrollbar-thin py-3 px-2 space-y-4">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto sidebar-scroll py-4 px-3 space-y-5">
         {filteredGroups.map((group) => (
           <div key={group.label}>
-            <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-brand-400">
+            <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30 select-none">
               {t(group.label, group.label)}
             </p>
             <div className="space-y-0.5">
@@ -178,14 +189,14 @@ export default function AppShell() {
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
                     clsx(
-                      "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+                      "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors duration-100",
                       isActive
-                        ? "bg-brand-700 text-white font-medium"
-                        : "text-brand-200 hover:bg-brand-800 hover:text-white"
+                        ? "bg-white/[0.12] text-white font-semibold shadow-sm"
+                        : "text-white/60 hover:bg-white/[0.06] hover:text-white/90"
                     )
                   }
                 >
-                  <item.icon className="h-4 w-4 shrink-0" />
+                  <item.icon className="h-4 w-4 shrink-0 opacity-90" />
                   {t(item.key)}
                 </NavLink>
               ))}
@@ -194,24 +205,32 @@ export default function AppShell() {
         ))}
       </nav>
 
-      <div className="border-t border-brand-800 px-4 py-3 shrink-0">
-        <p className="text-xs text-brand-200 font-medium truncate">{user?.full_name}</p>
-        <p className="text-xs text-brand-400 capitalize">{user?.role?.replace(/_/g, " ")}</p>
-        <button
-          onClick={() => logout().then(() => navigate("/login"))}
-          className="mt-1.5 flex items-center gap-1.5 text-xs text-brand-300 hover:text-white transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          {t("logout")}
-        </button>
+      {/* User footer */}
+      <div className="border-t border-white/[0.07] px-3 py-3 shrink-0">
+        <div className="flex items-center gap-2.5 px-1">
+          <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-[11px] font-semibold shrink-0 ring-2 ring-white/10">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-white/80 font-medium truncate">{user?.full_name}</p>
+            <p className="text-[10px] text-white/40 capitalize">{user?.role?.replace(/_/g, " ")}</p>
+          </div>
+          <button
+            onClick={() => logout().then(() => navigate("/login"))}
+            className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            aria-label={t("logout")}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </>
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#0d1117]">
       {/* Sidebar desktop */}
-      <aside className="hidden md:flex md:flex-col w-56 bg-brand-900 shrink-0">
+      <aside className="hidden md:flex md:flex-col w-60 bg-brand-900 shrink-0">
         {sidebarContent}
       </aside>
 
@@ -219,7 +238,7 @@ export default function AppShell() {
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />
@@ -231,42 +250,44 @@ export default function AppShell() {
 
       <div className="flex flex-col flex-1 min-w-0">
         {/* Top bar */}
-        <header className="h-14 shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3 px-4">
+        <header className="h-14 shrink-0 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3 px-4">
           <button
-            className="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400"
+            className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 h-9 flex-1 max-w-sm text-sm focus-within:border-brand-500">
-            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+          {/* Search */}
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900 px-3 h-9 flex-1 max-w-xs text-sm focus-within:border-brand-400 dark:focus-within:border-brand-500 transition-colors">
+            <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
             <input
-              className="flex-1 bg-transparent outline-none text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
-              placeholder={`${t("search")} orders…`}
+              className="flex-1 bg-transparent outline-none text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-600 text-sm"
+              placeholder={`${t("search")}…`}
               aria-label={t("search")}
             />
-            <kbd className="hidden sm:inline text-[10px] text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-1">/</kbd>
+            <kbd className="hidden sm:inline text-[10px] text-gray-400 dark:text-gray-600 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 font-mono">/</kbd>
           </div>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1 ml-auto">
             <LiveIndicator />
 
+            {/* Language */}
             <div className="relative">
               <button
-                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 onClick={() => setLangOpen((o) => !o)}
                 aria-label="Language"
                 aria-expanded={langOpen}
               >
                 <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline uppercase">{i18n.language.slice(0, 2)}</span>
-                <ChevronDown className="h-3 w-3" />
+                <span className="hidden sm:inline uppercase font-medium text-[11px]">{i18n.language.slice(0, 2)}</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
               {langOpen && (
                 <div
-                  className="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 py-1"
+                  className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg dark:shadow-black/30 z-50 py-1 overflow-hidden"
                   role="menu"
                 >
                   {LANGS.map((l) => (
@@ -274,10 +295,10 @@ export default function AppShell() {
                       key={l.code}
                       role="menuitem"
                       className={clsx(
-                        "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700",
+                        "w-full text-left px-3 py-2 text-sm transition-colors",
                         i18n.language === l.code
-                          ? "text-brand-700 dark:text-brand-300 font-medium"
-                          : "text-gray-700 dark:text-gray-200"
+                          ? "bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-medium"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       )}
                       onClick={() => { i18n.changeLanguage(l.code); setLangOpen(false); }}
                     >
@@ -288,24 +309,31 @@ export default function AppShell() {
               )}
             </div>
 
+            {/* Notifications */}
             <button
-              className="relative p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label={t("notifications", "Notifications")}
             >
-              <Bell className="h-5 w-5" />
+              <Bell className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
             </button>
 
+            {/* Dark mode toggle */}
             <button
               onClick={toggleDark}
-              className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label={dark ? "Light mode" : "Dark mode"}
+              className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {dark ? <Sun className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} /> : <Moon className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />}
             </button>
+
+            {/* User avatar */}
+            <div className="ml-1 w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-[11px] font-semibold cursor-default ring-2 ring-brand-200 dark:ring-brand-800" title={user?.full_name}>
+              {initials}
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto scrollbar-thin">
           <Outlet />
         </main>
       </div>
