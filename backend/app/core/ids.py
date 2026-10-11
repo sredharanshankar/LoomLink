@@ -33,9 +33,14 @@ def next_code(
     ).fetchone()
 
     if row is None:
+        # Sync from existing codes so we never collide on restart / first use
+        existing_max = _max_existing_seq(session, entity, key)
         session.execute(
-            text("INSERT INTO code_sequences (prefix, last_value) VALUES (:k, 0) ON CONFLICT DO NOTHING"),
-            {"k": key},
+            text(
+                "INSERT INTO code_sequences (prefix, last_value) VALUES (:k, :v) "
+                "ON CONFLICT (prefix) DO UPDATE SET last_value = GREATEST(code_sequences.last_value, :v)"
+            ),
+            {"k": key, "v": existing_max},
         )
         # Re-acquire lock after insert
         row = session.execute(
@@ -137,3 +142,45 @@ def _format_code(entity: str, seq: int, date: dt.date, order_no: int | None) -> 
             return f"RPL-{yymmdd}-{seq:02d}"
         case _:
             return f"{entity.upper()}-{seq:03d}"
+
+
+def _max_existing_seq(session: Session, entity: str, prefix_key: str) -> int:
+    """Read the highest sequence number already in the DB to avoid collisions on first use."""
+    # Each query extracts the numeric counter from the code and returns the max.
+    try:
+        match entity:
+            case "yarn_batch" | "purchase_order" | "dispatch" | "payment" | "supplier_bill":
+                # Codes: YB-2610-03, PO-2610-01, DSP-2610-01 — last segment is the seq
+                table = {
+                    "yarn_batch": "yarn_batches",
+                    "purchase_order": "purchase_orders",
+                    "dispatch": "dispatches",
+                    "payment": "payments",
+                    "supplier_bill": "supplier_bills",
+                }[entity]
+                row = session.execute(
+                    text(
+                        f"SELECT MAX(CAST(split_part(code, '-', 3) AS INTEGER)) "
+                        f"FROM {table} WHERE code LIKE :pat"
+                    ),
+                    {"pat": f"{prefix_key}-%"},
+                ).fetchone()
+                return int(row[0]) if row and row[0] is not None else 0
+
+            case "supplier":
+                row = session.execute(text("SELECT MAX(CAST(split_part(code,'-',2) AS INTEGER)) FROM suppliers")).fetchone()
+                return int(row[0]) if row and row[0] is not None else 0
+            case "buyer":
+                row = session.execute(text("SELECT MAX(CAST(split_part(code,'-',2) AS INTEGER)) FROM buyers")).fetchone()
+                return int(row[0]) if row and row[0] is not None else 0
+            case "worker":
+                row = session.execute(text("SELECT MAX(CAST(split_part(code,'-',2) AS INTEGER)) FROM workers")).fetchone()
+                return int(row[0]) if row and row[0] is not None else 0
+            case "order":
+                # ORD-101 = seq 1 (offset 100)
+                row = session.execute(text("SELECT MAX(CAST(split_part(code,'-',2) AS INTEGER)) - 100 FROM orders")).fetchone()
+                return max(int(row[0]) if row and row[0] is not None else 0, 0)
+            case _:
+                return 0
+    except Exception:
+        return 0
