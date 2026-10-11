@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { qk } from "../../lib/query-keys";
 import { formatCm, formatDateTime } from "../../lib/format";
@@ -6,6 +7,8 @@ import KpiTile from "../../components/ui/KpiTile";
 import PageHeader from "../../components/ui/PageHeader";
 import Skeleton from "../../components/ui/Skeleton";
 import { clsx } from "clsx";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 /* ---------- types ---------- */
 
@@ -76,6 +79,24 @@ function pct(produced: number, planned: number): string {
 /* ---------- component ---------- */
 
 export default function ProductionPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [logJobId, setLogJobId] = useState<string | null>(null);
+  const [deltaMetres, setDeltaMetres] = useState("");
+
+  const progressMutation = useMutation({
+    mutationFn: ({ jobId, delta_qty }: { jobId: string; delta_qty: number }) =>
+      api.post(`/jobs/${jobId}/progress`, { delta_qty }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: qk.production.jobs({ status: "running" }) });
+      queryClient.invalidateQueries({ queryKey: [...qk.production.machines(), "today"] });
+      setLogJobId(null);
+      setDeltaMetres("");
+    },
+  });
+
+  const canOperate = can(user?.role, "production:write");
+
   const floor = useQuery({
     queryKey: [...qk.production.machines(), "floor"],
     queryFn: () => api.get<FloorData>("/production/floor"),
@@ -255,6 +276,7 @@ export default function ProductionPage() {
                   <th className="px-5 py-3">Machine</th>
                   <th className="px-5 py-3">Progress</th>
                   <th className="px-5 py-3">Started</th>
+                  {canOperate && <th className="px-5 py-3">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -262,33 +284,78 @@ export default function ProductionPage() {
                   const progress = j.planned_qty > 0
                     ? Math.min(100, Math.round((j.produced_qty / j.planned_qty) * 100))
                     : 0;
+                  const isLogging = logJobId === j.id;
                   return (
-                    <tr key={j.id} className="hover:bg-gray-50">
-                      <td className="px-5 py-3 font-mono font-medium text-gray-900">
-                        {j.code}
-                      </td>
-                      <td className="px-5 py-3 text-gray-700">{j.order_code}</td>
-                      <td className="px-5 py-3 text-gray-700 capitalize">{j.stage}</td>
-                      <td className="px-5 py-3 font-mono text-gray-700">
-                        {j.machine_id ? (machineById.get(j.machine_id) ?? j.machine_id) : "—"}
-                      </td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-green-500 h-2 rounded-full"
-                              style={{ width: `${progress}%` }}
-                            />
+                    <>
+                      <tr key={j.id} className="hover:bg-gray-50">
+                        <td className="px-5 py-3 font-mono font-medium text-gray-900">
+                          {j.code}
+                        </td>
+                        <td className="px-5 py-3 text-gray-700">{j.order_code}</td>
+                        <td className="px-5 py-3 text-gray-700 capitalize">{j.stage}</td>
+                        <td className="px-5 py-3 font-mono text-gray-700">
+                          {j.machine_id ? (machineById.get(j.machine_id) ?? j.machine_id) : "—"}
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-20 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-green-500 h-2 rounded-full"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              {pct(j.produced_qty, j.planned_qty)}
+                            </span>
                           </div>
-                          <span className="text-xs text-gray-500 whitespace-nowrap">
-                            {pct(j.produced_qty, j.planned_qty)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
-                        {formatDateTime(j.started_at)}
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
+                          {formatDateTime(j.started_at)}
+                        </td>
+                        {canOperate && (
+                          <td className="px-5 py-3">
+                            <button
+                              onClick={() => {
+                                setLogJobId(isLogging ? null : j.id);
+                                setDeltaMetres("");
+                              }}
+                              className="text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                            >
+                              {isLogging ? "Cancel" : "+ Log Output"}
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                      {isLogging && (
+                        <tr key={`${j.id}-log`} className="bg-blue-50">
+                          <td colSpan={canOperate ? 7 : 6} className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-gray-700">Add output for {j.code}:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                placeholder="Metres produced"
+                                value={deltaMetres}
+                                onChange={(e) => setDeltaMetres(e.target.value)}
+                                className="w-36 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-500">m</span>
+                              <button
+                                disabled={!deltaMetres || progressMutation.isPending}
+                                onClick={() => {
+                                  const delta_qty = Math.round(parseFloat(deltaMetres) * 100);
+                                  if (delta_qty > 0) progressMutation.mutate({ jobId: j.id, delta_qty });
+                                }}
+                                className="rounded-lg px-4 py-1.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                              >
+                                {progressMutation.isPending ? "Saving…" : "Save"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>

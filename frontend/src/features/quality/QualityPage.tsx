@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { qk } from "../../lib/query-keys";
@@ -7,6 +7,8 @@ import PageHeader from "../../components/ui/PageHeader";
 import Skeleton from "../../components/ui/Skeleton";
 import KpiTile from "../../components/ui/KpiTile";
 import Badge from "../../components/ui/Badge";
+import { useAuth } from "../../lib/auth";
+import { can } from "../../lib/permissions";
 
 interface Roll {
   id: string;
@@ -61,6 +63,10 @@ function gradeColor(grade: string) {
 }
 
 export default function QualityPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const canInspect = can(user?.role, "quality:write");
+
   const { data: queues, isLoading: queuesLoading } = useQuery({
     queryKey: qk.quality.queues(),
     queryFn: () => api.get<QueueData>("/quality/queues"),
@@ -122,42 +128,61 @@ export default function QualityPage() {
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspected</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Roll Code</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Grade</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Length</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inspected</th>
+                  {canInspect && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {rolls?.items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan={canInspect ? 7 : 6} className="px-4 py-8 text-center text-gray-400">
                       No rolls found
                     </td>
                   </tr>
                 )}
                 {rolls?.items.map((roll) => (
-                  <tr key={roll.id} className="hover:bg-gray-50">
+                  <tr key={roll.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-sm">
                       <Link to={`/app/rolls/${roll.id}`} className="text-blue-600 hover:underline font-medium">
                         {roll.code}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{roll.order_code}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{roll.order_code}</td>
                     <td className="px-4 py-3 text-sm">
                       {roll.grade
                         ? <Badge color={gradeColor(roll.grade)}>{roll.grade}</Badge>
                         : <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{formatCm(roll.length_cm)}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{roll.status}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{formatCm(roll.length_cm)}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <Badge color={roll.status === "pending_qc" || roll.status === "rework" ? "yellow" : roll.status === "passed" ? "green" : roll.status === "rejected" ? "red" : "gray"}>
+                        {roll.status.replace(/_/g, " ")}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                       {roll.inspected_at ? formatDate(roll.inspected_at) : "—"}
                     </td>
+                    {canInspect && (
+                      <td className="px-4 py-3 text-sm">
+                        {(roll.status === "pending_qc" || roll.status === "rework") ? (
+                          <button
+                            onClick={() => navigate(`/app/rolls/${roll.id}`)}
+                            className="inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          >
+                            Inspect →
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
