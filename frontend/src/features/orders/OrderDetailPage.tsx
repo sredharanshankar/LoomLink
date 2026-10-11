@@ -46,7 +46,9 @@ interface HealthResponse {
   predicted_dispatch_at: string;
 }
 
-const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray"> = {
+const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray" | "orange"> = {
+  draft: "gray",
+  pending_approval: "orange",
   confirmed: "blue",
   in_production: "yellow",
   qc: "purple",
@@ -68,6 +70,11 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const submitMutation = useMutation({
+    mutationFn: () => api.post(`/orders/${id}/submit`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["order", id] }),
+  });
 
   const approveMutation = useMutation({
     mutationFn: () => api.post(`/orders/${id}/approve`, {}),
@@ -121,7 +128,16 @@ export default function OrderDetailPage() {
             <Badge color={STATUS_COLORS[order.status] ?? "gray"}>
               {formatStatus(order.status)}
             </Badge>
-            {order.status === "pending" && can(user?.role, "orders:write") && (
+            {order.status === "draft" && can(user?.role, "orders:write") && (
+              <button
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
+                className="inline-flex items-center justify-center rounded-lg font-medium text-sm h-9 px-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {submitMutation.isPending ? "Submitting…" : "→ Submit for Approval"}
+              </button>
+            )}
+            {order.status === "pending_approval" && can(user?.role, "orders:write") && (
               <>
                 <button
                   onClick={() => approveMutation.mutate()}

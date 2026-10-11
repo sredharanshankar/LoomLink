@@ -242,6 +242,27 @@ def cancel_order(
     return result
 
 
+@router.post("/orders/{id}/submit")
+def submit_order(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    from sqlalchemy import text
+    from app.core.time import now
+    row = db.execute(text("SELECT id, status FROM orders WHERE id = :id"), {"id": str(id)}).fetchone()
+    if not row:
+        raise AppError("NOT_FOUND", f"Order {id} not found.")
+    if row.status != "draft":
+        raise AppError("INVALID_STATE", f"Order status is '{row.status}', not draft.")
+    db.execute(
+        text("UPDATE orders SET status = 'pending_approval', updated_at = :now WHERE id = :id"),
+        {"id": str(id), "now": now()},
+    )
+    db.commit()
+    return {"id": str(id), "status": "pending_approval"}
+
+
 @router.post("/orders/{id}/approve")
 def approve_order(
     id: uuid.UUID,
@@ -256,11 +277,11 @@ def approve_order(
     if row.status != "pending_approval":
         raise AppError("INVALID_STATE", f"Order status is '{row.status}', not pending_approval.")
     db.execute(
-        text("UPDATE orders SET status = 'draft', updated_at = :now WHERE id = :id"),
+        text("UPDATE orders SET status = 'confirmed', updated_at = :now WHERE id = :id"),
         {"id": str(id), "now": now()},
     )
     db.commit()
-    return {"id": str(id), "status": "draft"}
+    return {"id": str(id), "status": "confirmed"}
 
 
 @router.post("/orders/{id}/reject")
