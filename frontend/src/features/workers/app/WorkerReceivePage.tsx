@@ -90,7 +90,7 @@ export default function WorkerReceivePage() {
       </div>
 
       <button
-        className="w-full bg-blue-600 text-white rounded-lg py-4 text-lg font-semibold active:bg-blue-700 disabled:opacity-50"
+        className="w-full bg-brand-600 text-white rounded-lg py-4 text-lg font-semibold active:bg-brand-700 disabled:opacity-50"
         disabled={!canSubmit}
         onClick={handleSubmit}
       >

@@ -78,7 +78,7 @@ function LinkBuyerModal({
           Buyer Entity
         </label>
         <select
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           value={selectedBuyerId}
           onChange={(e) => setSelectedBuyerId(e.target.value)}
         >
@@ -104,7 +104,7 @@ function LinkBuyerModal({
           <button
             onClick={() => mutation.mutate(selectedBuyerId || null)}
             disabled={mutation.isPending}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {mutation.isPending ? "Saving…" : "Save"}
           </button>

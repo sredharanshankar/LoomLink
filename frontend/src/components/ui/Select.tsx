@@ -1,4 +1,4 @@
-﻿import { forwardRef } from "react";
+import { forwardRef } from "react";
 import { clsx } from "clsx";
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -10,15 +10,11 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, options, placeholder, className, ...props }, ref) => (
-    <div className="flex flex-col gap-1">
-      {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+    <div className="flex flex-col gap-1.5">
+      {label && <label className="text-[13px] font-medium text-gray-700">{label}</label>}
       <select
         ref={ref}
-        className={clsx(
-          "h-10 rounded-md border px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600",
-          error ? "border-red-500" : "border-gray-300",
-          className
-        )}
+        className={clsx("input-base h-10 pr-8", error && "border-red-500", className)}
         {...props}
       >
         {placeholder && <option value="">{placeholder}</option>}

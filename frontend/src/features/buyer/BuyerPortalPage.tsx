@@ -78,7 +78,7 @@ export default function BuyerPortalPage() {
   const placeOrderButton = (
     <Link
       to="/app/buyer-portal/new"
-      className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+      className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
     >
       Place New Order
     </Link>
@@ -129,7 +129,7 @@ export default function BuyerPortalPage() {
                 <p className="text-gray-400 text-sm mb-4">No orders yet.</p>
                 <Link
                   to="/app/buyer-portal/new"
-                  className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  className="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
                 >
                   Place Your First Order
                 </Link>
@@ -149,7 +149,7 @@ export default function BuyerPortalPage() {
                   <tbody className="divide-y divide-gray-100">
                     {items.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-blue-600">{order.code}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-brand-600">{order.code}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{order.fabric_type_name ?? "—"}</td>
                         <td className="px-4 py-3 text-sm text-gray-700 text-right tabular-nums">{formatCm(order.quantity_cm)}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{formatDate(order.due_date)}</td>

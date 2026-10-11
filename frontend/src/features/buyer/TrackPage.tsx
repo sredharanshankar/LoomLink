@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import Card from "../../components/ui/Card";
 import Spinner from "../../components/ui/Spinner";
+import StatusPill from "../../components/ui/StatusPill";
 
 interface TrackData {
   order_number: string;
@@ -21,22 +22,25 @@ export default function TrackPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-brand-900">LoomLink</h1>
-          <p className="text-sm text-gray-500">Order Tracking</p>
-        </div>
-        {isLoading && <Spinner className="mx-auto" />}
-        {error && <p className="text-red-600 text-sm">Unable to load order status.</p>}
-        {data && (
-          <div className="space-y-3">
-            <div><p className="text-xs text-gray-500 uppercase tracking-wide">Order</p><p className="font-semibold text-gray-900">{data.order_number}</p></div>
-            <div><p className="text-xs text-gray-500 uppercase tracking-wide">Fabric</p><p className="text-gray-700">{data.fabric_type}</p></div>
-            <div><p className="text-xs text-gray-500 uppercase tracking-wide">Status</p><p className="text-gray-700 capitalize">{data.status.replace(/_/g, " ")}</p></div>
+    <Card title="Order tracking" description="Live status from the mill floor">
+      {isLoading && <Spinner className="mx-auto" />}
+      {error && <p className="text-sm text-red-600">Unable to load order status.</p>}
+      {data && (
+        <dl className="space-y-4">
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Order</dt>
+            <dd className="mt-0.5 font-semibold text-gray-900">{data.order_number}</dd>
           </div>
-        )}
-      </Card>
-    </div>
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Fabric</dt>
+            <dd className="mt-0.5 text-gray-700">{data.fabric_type}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Status</dt>
+            <dd className="mt-1"><StatusPill status={data.status} /></dd>
+          </div>
+        </dl>
+      )}
+    </Card>
   );
 }

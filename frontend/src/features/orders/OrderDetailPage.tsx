@@ -132,7 +132,7 @@ export default function OrderDetailPage() {
               <button
                 onClick={() => submitMutation.mutate()}
                 disabled={submitMutation.isPending}
-                className="inline-flex items-center justify-center rounded-lg font-medium text-sm h-9 px-4 bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-lg font-medium text-sm h-9 px-4 bg-brand-600 text-white hover:bg-brand-700 transition-colors disabled:opacity-50"
               >
                 {submitMutation.isPending ? "Submitting…" : "→ Submit for Approval"}
               </button>
@@ -155,7 +155,7 @@ export default function OrderDetailPage() {
                 </button>
               </>
             )}
-            <Link to="/app/orders" className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <Link to="/app/orders" className="text-sm text-gray-500 hover:text-gray-700">
               ← Back
             </Link>
           </div>

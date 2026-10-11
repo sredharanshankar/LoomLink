@@ -21,10 +21,10 @@ function Bar({ label, paise, total, color }: { label: string; paise: number; tot
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-700 dark:text-gray-300">{label}</span>
-        <span className="font-medium text-gray-900 dark:text-white">{fmt(paise)}</span>
+        <span className="text-gray-700">{label}</span>
+        <span className="font-medium text-gray-900">{fmt(paise)}</span>
       </div>
-      <div className="h-2 rounded-full bg-gray-100 dark:bg-gray-800">
+      <div className="h-2 rounded-full bg-gray-100">
         <div className={clsx("h-full rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -43,16 +43,16 @@ export default function LeakMeterPage() {
     <div className="p-6 max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <TrendingDown className="h-6 w-6 text-red-500" />
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">{t("leak", "Leak Meter")}</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t("leak", "Leak Meter")}</h1>
       </div>
 
-      {isLoading && <div className="h-48 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />}
+      {isLoading && <div className="h-48 rounded-xl bg-gray-100 animate-pulse" />}
 
       {data && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 space-y-5">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
           <div className="text-center">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Today's leak</p>
-            <p className="text-4xl font-bold text-red-600 dark:text-red-400 mt-1">{fmt(data.total_paise)}</p>
+            <p className="text-4xl font-bold text-red-600 mt-1">{fmt(data.total_paise)}</p>
           </div>
 
           <div className="space-y-4">

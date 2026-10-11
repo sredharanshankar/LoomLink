@@ -76,7 +76,7 @@ export default function WorkerHomePage() {
           <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-500">Active Jobs</h3>
-              <Link to="/w/jobs" className="text-xs text-blue-600 hover:underline">
+              <Link to="/w/jobs" className="text-xs text-brand-600 hover:underline">
                 View all →
               </Link>
             </div>
@@ -103,7 +103,7 @@ export default function WorkerHomePage() {
                       <p className="text-xs text-gray-500 mb-2">Order {job.order_code}</p>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
+                          className="bg-brand-600 h-2 rounded-full transition-all"
                           style={{ width: `${Math.min(pct, 100)}%` }}
                         />
                       </div>

@@ -45,12 +45,27 @@ export function formatDateTime(utcIso: string | null | undefined): string {
   if (!utcIso) return "—";
   const d = new Date(utcIso);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-IN", { timeZone: IST, hour12: false });
+  return d.toLocaleString("en-IN", {
+    timeZone: IST, day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+  });
 }
 
 export function formatDate(utcIso: string | null | undefined): string {
   if (!utcIso) return "—";
   const d = new Date(utcIso);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-IN", { timeZone: IST });
+  return d.toLocaleDateString("en-IN", { timeZone: IST, day: "numeric", month: "short", year: "numeric" });
+}
+
+export function formatRelative(utcIso: string | null | undefined, now: Date = new Date()): string {
+  if (!utcIso) return "—";
+  const d = new Date(utcIso);
+  if (isNaN(d.getTime())) return "—";
+  const mins = Math.round((now.getTime() - d.getTime()) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  return days < 30 ? `${days}d ago` : formatDate(utcIso);
 }

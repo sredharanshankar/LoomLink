@@ -123,7 +123,7 @@ export default function BuyerDetailPage() {
                   {orders.items.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm">
-                        <Link to={`/app/orders/${order.id}`} className="text-blue-600 hover:underline font-medium">
+                        <Link to={`/app/orders/${order.id}`} className="text-brand-600 hover:underline font-medium">
                           {order.code}
                         </Link>
                       </td>

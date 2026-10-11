@@ -1,11 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { clsx } from "clsx";
+import { Check, Download, Inbox, Plus, Search, X } from "lucide-react";
 import { api } from "../../lib/api";
 import { formatCm, formatDate } from "../../lib/format";
 import PageHeader from "../../components/ui/PageHeader";
-import Badge from "../../components/ui/Badge";
+import StatusPill from "../../components/ui/StatusPill";
 import Skeleton from "../../components/ui/Skeleton";
+import EmptyState from "../../components/ui/EmptyState";
+import Button from "../../components/ui/Button";
 import { useAuth } from "../../lib/auth";
 import { can } from "../../lib/permissions";
 
@@ -13,9 +17,11 @@ interface Order {
   id: string;
   code: string;
   buyer_name: string;
-  fabric_type_name: string;
+  fabric_type_id?: string;
+  fabric_type_name?: string;
   quantity_cm: number;
   status: string;
+  priority?: string;
   due_date: string;
   created_at: string;
 }
@@ -31,35 +37,37 @@ interface HealthResponse {
   predicted_dispatch_at: string;
 }
 
-const STATUS_COLORS: Record<string, "blue" | "yellow" | "purple" | "green" | "gray" | "red"> = {
-  pending_approval: "red",
-  confirmed: "blue",
-  in_production: "yellow",
-  qc: "purple",
-  ready: "green",
-  dispatched: "gray",
+const STATUS_FILTERS = [
+  { value: "", label: "All" },
+  { value: "draft", label: "Draft" },
+  { value: "pending_approval", label: "Awaiting approval" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "in_production", label: "In production" },
+  { value: "qc", label: "QC" },
+  { value: "ready", label: "Ready" },
+  { value: "dispatched", label: "Dispatched" },
+];
+
+const HEALTH: Record<string, { dot: string; label: string }> = {
+  green: { dot: "bg-emerald-500", label: "On track" },
+  amber: { dot: "bg-amber-500", label: "At risk" },
+  red: { dot: "bg-red-500", label: "Late" },
 };
 
-const HEALTH_DOT: Record<string, string> = {
-  green: "bg-green-500",
-  amber: "bg-yellow-500",
-  red: "bg-red-500",
-};
-
-function HealthDot({ orderId }: { orderId: string }) {
+function HealthIndicator({ orderId }: { orderId: string }) {
   const { data, isLoading } = useQuery<HealthResponse>({
     queryKey: ["order-health", orderId],
     queryFn: () => api.get(`/ripple/orders/${orderId}/health`),
   });
 
-  if (isLoading) return <span className="inline-block w-3 h-3 rounded-full bg-gray-200 animate-pulse" />;
-  if (!data) return <span className="inline-block w-3 h-3 rounded-full bg-gray-300" />;
-
+  if (isLoading) return <span className="inline-block h-2 w-14 animate-pulse rounded-full bg-gray-100" />;
+  const h = data ? HEALTH[data.health] : undefined;
+  if (!h) return <span className="text-xs text-gray-400">—</span>;
   return (
-    <span
-      className={`inline-block w-3 h-3 rounded-full ${HEALTH_DOT[data.health] ?? "bg-gray-300"}`}
-      title={`${data.health} — ${data.slack_minutes}min slack`}
-    />
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700" title={`${data!.slack_minutes} min slack`}>
+      <span className={clsx("h-2 w-2 rounded-full", h.dot)} />
+      {h.label}
+    </span>
   );
 }
 
@@ -67,12 +75,12 @@ function formatStatus(status: string): string {
   return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function exportOrdersCSV(orders: Order[]) {
+function exportOrdersCSV(orders: Order[], fabricName: (o: Order) => string) {
   const header = ["Code", "Buyer", "Fabric Type", "Quantity (m)", "Due Date", "Status", "Created At"];
   const rows = orders.map((o) => [
     o.code,
     o.buyer_name,
-    o.fabric_type_name ?? "",
+    fabricName(o),
     (o.quantity_cm / 100).toFixed(2),
     o.due_date,
     formatStatus(o.status),
@@ -92,6 +100,8 @@ export default function OrdersPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (user?.role === "buyer") {
@@ -107,7 +117,31 @@ export default function OrdersPage() {
     queryFn: () => api.get("/orders?page=1&size=50"),
   });
 
-  const pendingOrders = data?.items.filter((o) => o.status === "pending_approval") ?? [];
+  const { data: fabrics } = useQuery({
+    queryKey: ["fabric-types"],
+    queryFn: () => api.get<{ items: { id: string; name: string }[] }>("/fabric-types"),
+    retry: false,
+  });
+
+  const fabricName = useMemo(() => {
+    const byId = new Map((fabrics?.items ?? []).map((f) => [f.id, f.name]));
+    return (o: Order) => o.fabric_type_name ?? (o.fabric_type_id ? byId.get(o.fabric_type_id) : undefined) ?? "—";
+  }, [fabrics]);
+
+  const items = useMemo(() => data?.items ?? [], [data]);
+  const pendingOrders = items.filter((o) => o.status === "pending_approval");
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { "": items.length };
+    for (const o of items) c[o.status] = (c[o.status] ?? 0) + 1;
+    return c;
+  }, [items]);
+
+  const q = search.trim().toLowerCase();
+  const visible = items.filter(
+    (o) =>
+      (!statusFilter || o.status === statusFilter) &&
+      (!q || o.code.toLowerCase().includes(q) || o.buyer_name?.toLowerCase().includes(q)),
+  );
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => api.post(`/orders/${id}/approve`, {}),
@@ -120,120 +154,164 @@ export default function OrdersPage() {
   });
 
   const actionButton = canManage ? (
-    <Link
-      to="/app/orders/new"
-      className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-    >
-      New Order
+    <Link to="/app/orders/new" className="btn-primary">
+      <Plus className="h-4 w-4" /> New order
     </Link>
   ) : isAccounts ? (
-    <button
-      onClick={() => data?.items && exportOrdersCSV(data.items)}
-      disabled={!data?.items?.length}
-      className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-    >
-      Export Excel
-    </button>
+    <Button variant="secondary" onClick={() => exportOrdersCSV(items, fabricName)} disabled={!items.length}>
+      <Download className="h-4 w-4" /> Export CSV
+    </Button>
   ) : null;
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader title="Orders" actions={actionButton} />
+    <div className="space-y-6 p-6 lg:p-8">
+      <PageHeader
+        title="Orders"
+        subtitle={data ? `${data.total} orders · ${counts.in_production ?? 0} in production` : undefined}
+        actions={actionButton}
+      />
 
-      {/* Pending buyer order approvals — visible to owner/manager */}
       {canManage && pendingOrders.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50">
-          <div className="px-4 py-3 border-b border-amber-200">
-            <h2 className="text-sm font-semibold text-amber-800">
-              Buyer Order Requests — {pendingOrders.length} pending approval
+        <div className="card overflow-hidden border-amber-300/60">
+          <div className="flex items-center gap-2 border-b border-amber-200/70 bg-amber-50 px-5 py-3">
+            <Inbox className="h-4 w-4 text-amber-600" />
+            <h2 className="text-sm font-semibold text-amber-900">
+              Buyer requests · {pendingOrders.length} awaiting approval
             </h2>
           </div>
-          <div className="divide-y divide-amber-100">
+          <ul className="divide-y divide-gray-100">
             {pendingOrders.map((order) => (
-              <div key={order.id} className="px-4 py-3 flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{order.code}</p>
+              <li key={order.id} className="flex flex-col gap-3 px-5 py-3.5 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1">
+                  <Link to={`/app/orders/${order.id}`} className="font-mono text-sm font-semibold text-gray-900 hover:text-brand-600">
+                    {order.code}
+                  </Link>
                   <p className="text-xs text-gray-500">
-                    {order.buyer_name} · {order.fabric_type_name} · {formatCm(order.quantity_cm)} · Due {formatDate(order.due_date)}
+                    {order.buyer_name} · {fabricName(order)} · {formatCm(order.quantity_cm)} · Due {formatDate(order.due_date)}
                   </p>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => approveMutation.mutate(order.id)}
-                    disabled={approveMutation.isPending || rejectMutation.isPending}
-                    className="px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 font-medium"
-                  >
-                    Approve
-                  </button>
-                  <button
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     onClick={() => rejectMutation.mutate(order.id)}
                     disabled={approveMutation.isPending || rejectMutation.isPending}
-                    className="px-3 py-1 text-xs rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 font-medium"
                   >
-                    Reject
-                  </button>
+                    <X className="h-3.5 w-3.5" /> Reject
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="success"
+                    onClick={() => approveMutation.mutate(order.id)}
+                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                  >
+                    <Check className="h-3.5 w-3.5" /> Approve
+                  </Button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
-
-      {isLoading && <Skeleton rows={8} />}
 
       {isError && (
-        <div className="bg-red-50 text-red-700 rounded-lg border border-red-200 p-4">
-          Failed to load orders.
-        </div>
+        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700 ring-1 ring-inset ring-red-600/15">Failed to load orders.</div>
       )}
 
-      {data && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Buyer</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fabric</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Health</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data.items.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">
-                    <Link to={`/app/orders/${order.id}`} className="text-blue-600 hover:underline font-medium">
-                      {order.code}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{order.buyer_name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{order.fabric_type_name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{formatCm(order.quantity_cm)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{formatDate(order.due_date)}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <Badge color={STATUS_COLORS[order.status] ?? "gray"}>
-                      {formatStatus(order.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <HealthDot orderId={order.id} />
-                  </td>
-                </tr>
-              ))}
-              {data.items.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    No orders yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="card overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-gray-100 p-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-1">
+            {STATUS_FILTERS.filter((f) => !f.value || counts[f.value]).map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={clsx(
+                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
+                  statusFilter === f.value ? "bg-brand-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100",
+                )}
+              >
+                {f.label}
+                <span
+                  className={clsx(
+                    "tabular rounded-md px-1.5 text-[11px]",
+                    statusFilter === f.value ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500",
+                  )}
+                >
+                  {counts[f.value] ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+          <label className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 lg:w-72">
+            <Search className="h-4 w-4 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search code or buyer"
+              aria-label="Search orders"
+              className="min-w-0 flex-1 bg-transparent text-gray-900 outline-none placeholder:text-gray-400"
+            />
+          </label>
         </div>
-      )}
+
+        {isLoading ? (
+          <div className="p-5"><Skeleton rows={8} /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50/80">
+                  <th className="table-header-cell">Order</th>
+                  <th className="table-header-cell">Buyer</th>
+                  <th className="table-header-cell">Fabric</th>
+                  <th className="table-header-cell text-right">Quantity</th>
+                  <th className="table-header-cell">Due</th>
+                  <th className="table-header-cell">Status</th>
+                  <th className="table-header-cell">Health</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {visible.map((order) => (
+                  <tr
+                    key={order.id}
+                    onClick={() => navigate(`/app/orders/${order.id}`)}
+                    className="cursor-pointer transition-colors hover:bg-gray-50"
+                  >
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/app/orders/${order.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-mono text-sm font-semibold text-gray-900 hover:text-brand-600"
+                      >
+                        {order.code}
+                      </Link>
+                      {order.priority === "high" && (
+                        <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-700">High</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{order.buyer_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{fabricName(order)}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium text-gray-900">{formatCm(order.quantity_cm)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{formatDate(order.due_date)}</td>
+                    <td className="px-4 py-3"><StatusPill status={order.status} size="sm" /></td>
+                    <td className="px-4 py-3"><HealthIndicator orderId={order.id} /></td>
+                  </tr>
+                ))}
+                {visible.length === 0 && (
+                  <tr>
+                    <td colSpan={7}>
+                      <EmptyState
+                        title={items.length ? "No orders match these filters" : "No orders yet"}
+                        description={items.length ? "Try a different status or search term." : undefined}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ type Permission =
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   owner: ["inventory:read","inventory:write","orders:read","orders:write","production:read","production:write","quality:read","quality:write","dispatch:read","dispatch:write","workers:read","workers:write","finance:read","finance:write","ripple:read","admin:read","admin:write"],
-  manager: ["inventory:read","inventory:write","orders:read","orders:write","production:read","production:write","quality:read","quality:write","dispatch:read","dispatch:write","workers:read","workers:write","finance:read","ripple:read","admin:read"],
+  manager: ["inventory:read","inventory:write","orders:read","orders:write","production:read","production:write","quality:read","quality:write","dispatch:read","workers:read","workers:write","ripple:read","admin:read"],
   storekeeper: ["inventory:read","inventory:write","production:read","ripple:read"],
   operator: ["production:read","production:write","ripple:read"],
   qc_inspector: ["quality:read","quality:write","production:read","ripple:read"],

@@ -120,7 +120,7 @@ export default function ScannerModal({ open, onClose, onScan }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black/95"
+      className="theme-light fixed inset-0 z-50 flex flex-col bg-black/95"
       role="dialog"
       aria-modal="true"
       aria-label="QR / Barcode Scanner"

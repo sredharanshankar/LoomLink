@@ -98,7 +98,7 @@ export default function DispatchPage() {
                 {dispatches?.items.map((d) => (
                   <tr key={d.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      <Link to={`/app/dispatch/${d.id}`} className="text-blue-600 hover:underline font-medium">
+                      <Link to={`/app/dispatch/${d.id}`} className="text-brand-600 hover:underline font-medium">
                         {d.code}
                       </Link>
                     </td>

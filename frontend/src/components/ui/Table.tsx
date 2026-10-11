@@ -1,3 +1,6 @@
+import { clsx } from "clsx";
+import EmptyState from "./EmptyState";
+
 interface Column<T> {
   key: string;
   header: string;
@@ -16,32 +19,41 @@ interface TableProps<T> {
 export default function Table<T>({ columns, data, rowKey, onRowClick, emptyMessage = "No data" }: TableProps<T>) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
-          <tr>
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 bg-gray-50/80">
             {columns.map((col) => (
-              <th key={col.key} className={`px-4 py-3 text-left font-medium text-gray-500 uppercase tracking-wide text-xs ${col.className ?? ""}`}>
+              <th
+                key={col.key}
+                className={clsx("table-header-cell whitespace-nowrap", col.className)}
+              >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
+        <tbody className="divide-y divide-gray-100">
           {data.length === 0 ? (
-            <tr><td colSpan={columns.length} className="px-4 py-8 text-center text-gray-400">{emptyMessage}</td></tr>
-          ) : data.map((row) => (
-            <tr
-              key={rowKey(row)}
-              className={onRowClick ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""}
-              onClick={() => onRowClick?.(row)}
-            >
-              {columns.map((col) => (
-                <td key={col.key} className={`px-4 py-3 ${col.className ?? ""}`}>
-                  {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
-                </td>
-              ))}
+            <tr>
+              <td colSpan={columns.length}>
+                <EmptyState title={emptyMessage} />
+              </td>
             </tr>
-          ))}
+          ) : (
+            data.map((row) => (
+              <tr
+                key={rowKey(row)}
+                className={clsx("transition-colors", onRowClick && "cursor-pointer hover:bg-gray-50")}
+                onClick={() => onRowClick?.(row)}
+              >
+                {columns.map((col) => (
+                  <td key={col.key} className={clsx("px-4 py-3 text-gray-700", col.className)}>
+                    {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

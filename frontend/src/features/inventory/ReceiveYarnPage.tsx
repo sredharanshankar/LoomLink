@@ -111,7 +111,7 @@ export default function ReceiveYarnPage() {
             <select
               value={yarnTypeId}
               onChange={(e) => setYarnTypeId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Select yarn type</option>
               {yarnTypes?.items.map((y) => (
@@ -129,7 +129,7 @@ export default function ReceiveYarnPage() {
             <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Select supplier</option>
               {suppliers?.items.map((s) => (
@@ -151,7 +151,7 @@ export default function ReceiveYarnPage() {
               value={qtyKg}
               onChange={(e) => setQtyKg(e.target.value)}
               placeholder="e.g. 120"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -165,7 +165,7 @@ export default function ReceiveYarnPage() {
               value={ratePaisePerKg}
               onChange={(e) => setRatePaisePerKg(e.target.value)}
               placeholder="Leave blank for standard rate"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             <p className="mt-1 text-xs text-gray-400">Leave blank to use the yarn type&apos;s standard rate.</p>
           </div>
@@ -174,7 +174,7 @@ export default function ReceiveYarnPage() {
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="inline-flex items-center justify-center rounded-md font-medium h-10 px-5 text-sm bg-blue-700 text-white hover:bg-blue-800 transition-colors disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-md font-medium h-10 px-5 text-sm bg-brand-700 text-white hover:bg-brand-800 transition-colors disabled:opacity-50"
             >
               {mutation.isPending ? "Receiving…" : "Receive Yarn"}
             </button>
