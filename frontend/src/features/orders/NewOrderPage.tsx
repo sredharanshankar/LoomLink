@@ -31,6 +31,8 @@ export default function NewOrderPage() {
   const [priority, setPriority] = useState("normal");
   const [error, setError] = useState("");
 
+  const today = new Date().toISOString().split("T")[0];
+
   const mutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post<{ id: string }>("/orders", body),
     onSuccess: (data) => {
@@ -44,6 +46,7 @@ export default function NewOrderPage() {
     e.preventDefault();
     setError("");
     if (!buyerId || !fabricTypeId || !quantityM || !dueDate) { setError("Please fill all required fields."); return; }
+    if (dueDate < today) { setError("Due date cannot be in the past."); return; }
     const fab = fabrics?.items.find((f) => f.id === fabricTypeId);
     mutation.mutate({
       buyer_id: buyerId,
@@ -82,7 +85,7 @@ export default function NewOrderPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="date" value={dueDate} min={today} onChange={(e) => setDueDate(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Price (paise/m)</label>
