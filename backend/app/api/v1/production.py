@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_db, require_permission
 import app.services.master_data as md
+import app.services.production as prod_svc
 
 router = APIRouter()
 
@@ -46,9 +47,31 @@ def get_machine(
     user=Depends(require_permission("production.view")),
     db=Depends(get_db),
 ):
+    from sqlalchemy import text
     machine = md.get_machine(db, id)
     caps = md.get_machine_capabilities(db, id)
-    return _machine_out(machine, caps)
+    # Try current_job_id first; fall back to any running job on this machine
+    current_job = None
+    job_filter = "j.id = :jid" if machine.current_job_id else "j.machine_id = :jid AND j.status = 'running'"
+    job_param = str(machine.current_job_id) if machine.current_job_id else str(id)
+    row = db.execute(text(f"""
+        SELECT j.id, j.code, j.stage, j.planned_qty, j.produced_qty,
+               o.code AS order_code,
+               ft.name AS fabric_type, o.quantity_cm
+        FROM jobs j
+        LEFT JOIN orders o ON o.id = j.order_id
+        LEFT JOIN fabric_types ft ON ft.id = o.fabric_type_id
+        WHERE {job_filter}
+        LIMIT 1
+    """), {"jid": job_param}).fetchone()
+    if row:
+        current_job = {
+            "id": str(row.id), "code": row.code, "stage": row.stage,
+            "order_code": row.order_code, "fabric_type": row.fabric_type,
+            "quantity_cm": row.quantity_cm,
+            "planned_qty": row.planned_qty, "produced_qty": row.produced_qty,
+        }
+    return _machine_out(machine, caps, current_job)
 
 
 @router.patch("/machines/{id}")
@@ -73,117 +96,236 @@ def machine_events(
     from sqlalchemy import text
     rows = db.execute(
         text(
-            "SELECT kind, params, created_at FROM machine_events "
+            "SELECT kind, note, estimated_repair_minutes, created_at FROM machine_events "
             "WHERE machine_id = :mid ORDER BY created_at DESC LIMIT 100"
         ),
         {"mid": id},
     ).fetchall()
-    return {"items": [{"kind": r[0], "params": r[1], "created_at": r[2].isoformat()} for r in rows]}
+    return {"items": [{"kind": r[0], "note": r[1],
+                        "estimated_repair_minutes": r[2],
+                        "created_at": r[3].isoformat()} for r in rows]}
 
 
 # ---------------------------------------------------------------------------
-# Production floor / jobs — implemented in A-M4
+# Production floor / jobs
 # ---------------------------------------------------------------------------
 
 @router.get("/production/floor")
-def floor_map(user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def floor_map(
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    return {"machines": prod_svc.get_floor_map(db)}
 
 
 @router.get("/production/today")
-def today_output(user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def today_output(
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    return {"items": prod_svc.get_today_output(db)}
 
 
 @router.get("/jobs")
-def list_jobs(user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def list_jobs(
+    order_id: uuid.UUID | None = Query(None),
+    machine_id: uuid.UUID | None = Query(None),
+    status: str | None = Query(None),
+    stage: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    filters = {
+        "order_id": order_id, "machine_id": machine_id,
+        "status": status, "stage": stage,
+        "page": page, "size": size,
+    }
+    items, total = prod_svc.list_jobs(db, filters)
+    return {"items": items, "total": total, "page": page, "size": size}
 
 
 @router.get("/jobs/{id}")
-def get_job(id: str, user=Depends(require_permission("production.view"))):
-    raise NotImplementedError
+def get_job(
+    id: uuid.UUID,
+    user=Depends(require_permission("production.view")),
+    db=Depends(get_db),
+):
+    return prod_svc.get_job(db, id)
 
 
 @router.post("/jobs/{id}/assign")
-def assign_job(id: str, user=Depends(require_permission("production.plan"))):
-    raise NotImplementedError
+def assign_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.plan")),
+    db=Depends(get_db),
+):
+    result = prod_svc.assign_job(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/reorder")
-def reorder_jobs(user=Depends(require_permission("production.plan"))):
-    raise NotImplementedError
+def reorder_jobs(
+    body: dict,
+    user=Depends(require_permission("production.plan")),
+    db=Depends(get_db),
+):
+    machine_id = uuid.UUID(str(body["machine_id"]))
+    job_ids = [uuid.UUID(str(j)) for j in body["job_ids"]]
+    result = prod_svc.reorder_queue(db, machine_id, job_ids, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/split")
-def split_job(id: str, user=Depends(require_permission("production.plan"))):
-    raise NotImplementedError
+def split_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.plan")),
+    db=Depends(get_db),
+):
+    result = prod_svc.split_job(db, id, body, user)
+    db.commit()
+    return {"jobs": result}
 
 
 @router.post("/jobs/{id}/start")
-def start_job(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def start_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.start_job(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/progress")
-def job_progress(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def job_progress(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.record_progress(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/pause")
-def pause_job(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def pause_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.pause_job(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/resume")
-def resume_job(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def resume_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.resume_job(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/handover")
-def handover_job(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def handover_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.handover_job(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/accept-handover")
-def accept_handover(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def accept_handover(
+    id: uuid.UUID,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.accept_handover(db, id, user)
+    db.commit()
+    return result
 
 
 @router.post("/jobs/{id}/finish")
-def finish_job(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def finish_job(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.finish_job(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/machines/{id}/breakdown")
-def machine_breakdown(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def machine_breakdown(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.machine_breakdown(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/machines/{id}/repaired")
-def machine_repaired(id: str, user=Depends(require_permission("production.operate"))):
-    raise NotImplementedError
+def machine_repaired(
+    id: uuid.UUID,
+    user=Depends(require_permission("production.operate")),
+    db=Depends(get_db),
+):
+    result = prod_svc.machine_repaired(db, id, user)
+    db.commit()
+    return result
 
 
 @router.post("/machines/{id}/maintenance")
-def machine_maintenance(id: str, user=Depends(require_permission("machines.manage"))):
-    raise NotImplementedError
+def machine_maintenance(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("machines.manage")),
+    db=Depends(get_db),
+):
+    result = prod_svc.machine_maintenance(db, id, body, user)
+    db.commit()
+    return result
 
 
 # ---------------------------------------------------------------------------
 # serializers
 # ---------------------------------------------------------------------------
 
-def _machine_out(m, caps) -> dict:
+def _machine_out(m, caps, current_job: dict | None = None) -> dict:
     return {
         "id": str(m.id),
         "code": m.code,
+        "name": m.name,
         "stage": m.stage,
         "floor_x": m.floor_x,
         "floor_y": m.floor_y,
         "status": m.status,
+        "status_changed_at": m.status_changed_at.isoformat() if getattr(m, "status_changed_at", None) else None,
         "current_job_id": str(m.current_job_id) if m.current_job_id else None,
-        "notes": m.notes,
+        "current_job": current_job,
         "fabric_type_ids": [str(c.fabric_type_id) for c in caps],
         "created_at": m.created_at.isoformat(),
     }

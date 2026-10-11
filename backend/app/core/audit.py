@@ -1,6 +1,6 @@
 from __future__ import annotations
 import datetime as dt
-from uuid import UUID
+from uuid import UUID, uuid4
 from sqlalchemy.orm import Session
 
 
@@ -18,12 +18,14 @@ def audit(
     from sqlalchemy import text
     import json
 
+    from app.core.time import now as _now
     session.execute(
         text("""
-            INSERT INTO audit_log (actor_id, action, entity, entity_id, before, after, ip, created_at)
-            VALUES (:actor_id, :action, :entity, :entity_id, :before, :after, :ip, :now)
+            INSERT INTO audit_log (id, actor_id, action, entity, entity_id, before, after, ip, created_at)
+            VALUES (:id, :actor_id, :action, :entity, :entity_id, :before, :after, :ip, :now)
         """),
         {
+            "id": str(uuid4()),
             "actor_id": str(actor_id) if actor_id else None,
             "action": action,
             "entity": entity,
@@ -31,6 +33,6 @@ def audit(
             "before": json.dumps(before) if before else None,
             "after": json.dumps(after) if after else None,
             "ip": ip,
-            "now": dt.datetime.now(dt.timezone.utc),
+            "now": _now(),
         },
     )

@@ -6,7 +6,7 @@ interface Props {
 }
 
 function SkeletonLine({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-200 rounded", className)} />;
+  return <div className={clsx("animate-pulse bg-gray-200 dark:bg-gray-800 rounded-md", className)} />;
 }
 
 export default function Skeleton({ className, rows = 3 }: Props) {
@@ -22,9 +22,9 @@ export default function Skeleton({ className, rows = 3 }: Props) {
 export function SkeletonRow() {
   return (
     <div className="animate-pulse flex items-center gap-4 py-3">
-      <div className="h-4 bg-gray-200 rounded w-1/4" />
-      <div className="h-4 bg-gray-200 rounded w-1/3" />
-      <div className="h-4 bg-gray-200 rounded w-1/6 ml-auto" />
+      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded-md w-1/4" />
+      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded-md w-1/3" />
+      <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded-md w-1/6 ml-auto" />
     </div>
   );
 }

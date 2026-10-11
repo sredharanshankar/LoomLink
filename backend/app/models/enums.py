@@ -44,14 +44,17 @@ class MachineStatus(str, enum.Enum):
 class JobStatus(str, enum.Enum):
     planned = "planned"
     ready = "ready"
+    queued = "queued"
     running = "running"
     paused = "paused"
     blocked = "blocked"
     done = "done"
+    completed = "completed"
     cancelled = "cancelled"
 
 
 class OrderStatus(str, enum.Enum):
+    pending_approval = "pending_approval"
     draft = "draft"
     confirmed = "confirmed"
     in_production = "in_production"

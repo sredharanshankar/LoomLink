@@ -26,6 +26,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "ripple.view", "ripple.manage", "ripple.apply",
         "leak.view",
         "bol.use",
+        "demo.reset",
     },
     "manager": {
         "settings.view",
@@ -37,7 +38,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "orders.view", "orders.manage", "orders.lookup",
         "production.view", "production.plan", "production.operate",
         "machines.manage",
-        "rolls.create", "quality.view", "rolls.passport",
+        "rolls.create", "quality.view", "quality.inspect", "rolls.passport",
         "dispatch.view",
         "workers.view", "workers.manage",
         "attendance.self", "attendance.view", "attendance.manage",
@@ -57,6 +58,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dispatch.view",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "operator": {
         "scan.use",
@@ -66,6 +68,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "rolls.create",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "qc_inspector": {
         "scan.use", "labels.print",
@@ -75,6 +78,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dispatch.view",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "dispatch": {
         "scan.use",
@@ -86,6 +90,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "dispatch.view", "dispatch.manage",
         "attendance.self",
         "bol.use",
+        "ripple.view",
     },
     "accounts": {
         "settings.view",
@@ -102,9 +107,11 @@ PERMISSIONS: dict[str, set[str]] = {
         "dashboard.owner",
         "dispatch.view",
         "leak.view",
+        "ripple.view",
     },
     "buyer": {
         "buyer.own",
+        "orders.view",
     },
 }
 
@@ -128,6 +135,7 @@ async def current_user(
         raise AppError("UNAUTHENTICATED", "Token expired.")
     except jwt.InvalidTokenError:
         raise AppError("UNAUTHENTICATED", "Invalid token.")
+    payload["id"] = payload.get("sub")
     return payload
 
 

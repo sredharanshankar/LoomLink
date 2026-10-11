@@ -23,6 +23,12 @@ _GSTIN_RE = re.compile(
     r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$"
 )
 _PHONE_RE = re.compile(r"^(\+91)?[6-9][0-9]{9}$")
+_VALID_STATE_CODES = {
+    "01","02","03","04","05","06","07","08","09","10",
+    "11","12","13","14","15","16","17","18","19","20",
+    "21","22","23","24","25","26","27","28","29","30",
+    "31","32","33","34","35","36","37","38",
+}
 
 _STAGE_PREFIX = {"SP": "spinning", "WV": "weaving", "DY": "dyeing", "FN": "finishing"}
 _FLOOR_W, _FLOOR_H = 12, 8
@@ -33,8 +39,12 @@ _FLOOR_W, _FLOOR_H = 12, 8
 # ---------------------------------------------------------------------------
 
 def _validate_gstin(value: str | None) -> None:
-    if value and not _GSTIN_RE.match(value):
+    if not value:
+        return
+    if not _GSTIN_RE.match(value):
         raise AppError("VALIDATION_ERROR", f"Invalid GSTIN: {value}")
+    if value[:2] not in _VALID_STATE_CODES:
+        raise AppError("VALIDATION_ERROR", f"Invalid GSTIN state code: {value[:2]}")
 
 
 def _validate_phone(value: str | None) -> None:
@@ -459,6 +469,8 @@ def create_machine(session: Session, data: dict, user: dict) -> Any:
     if prefix not in _STAGE_PREFIX:
         raise AppError("VALIDATION_ERROR", f"Machine code prefix must be one of: {list(_STAGE_PREFIX)}")
     stage = _STAGE_PREFIX[prefix]
+    if data.get("stage") and data["stage"] != stage:
+        raise AppError("VALIDATION_ERROR", f"Machine code '{code}' implies stage '{stage}', got '{data['stage']}'")
 
     fx, fy = int(data.get("floor_x", 1)), int(data.get("floor_y", 1))
     if not (1 <= fx <= _FLOOR_W) or not (1 <= fy <= _FLOOR_H):

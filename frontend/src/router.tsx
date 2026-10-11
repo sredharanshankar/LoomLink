@@ -1,8 +1,9 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
 import WorkerShell from "./components/layout/WorkerShell";
 import PublicShell from "./components/layout/PublicShell";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import { useAuth } from "./lib/auth";
 import Spinner from "./components/ui/Spinner";
 import { rippleRoutes } from "./features/ripple/index";
@@ -12,6 +13,8 @@ const LoginPage = lazy(() => import("./features/auth/LoginPage"));
 const PinLoginPage = lazy(() => import("./features/auth/PinLoginPage"));
 const ScanResolverPage = lazy(() => import("./features/scan/ScanResolverPage"));
 const TrackPage = lazy(() => import("./features/buyer/TrackPage"));
+const BuyerPortalPage = lazy(() => import("./features/buyer/BuyerPortalPage"));
+const BuyerOrderFormPage = lazy(() => import("./features/buyer/BuyerOrderFormPage"));
 
 // Console (/app/*)
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
@@ -48,6 +51,8 @@ const SettingsPage = lazy(() => import("./features/admin/SettingsPage"));
 const UsersPage = lazy(() => import("./features/admin/UsersPage"));
 const AuditPage = lazy(() => import("./features/admin/AuditPage"));
 
+const NotFoundPage = lazy(() => import("./features/misc/NotFoundPage"));
+
 // Worker app (/w/*)
 const WorkerHomePage = lazy(() => import("./features/workers/app/WorkerHomePage"));
 const WorkerScanPage = lazy(() => import("./features/workers/app/WorkerScanPage"));
@@ -61,18 +66,22 @@ const WorkerReceivePage = lazy(() => import("./features/workers/app/WorkerReceiv
 const WorkerRollPage = lazy(() => import("./features/workers/app/WorkerRollPage"));
 const WorkerQcPage = lazy(() => import("./features/workers/app/WorkerQcPage"));
 const WorkerDispatchPage = lazy(() => import("./features/workers/app/WorkerDispatchPage"));
+const WorkerMePage = lazy(() => import("./features/workers/app/WorkerMePage"));
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
+function RequireAuth({ children, redirectTo = "/login" }: { children: React.ReactNode; redirectTo?: string }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={redirectTo} replace />;
   return <>{children}</>;
 }
 
 function Lazy({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
   return (
-    <Suspense fallback={<div className="flex h-full items-center justify-center p-12"><Spinner /></div>}>
-      {children}
-    </Suspense>
+    <ErrorBoundary key={pathname}>
+      <Suspense fallback={<div className="flex h-full items-center justify-center p-12"><Spinner /></div>}>
+        {children}
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -88,7 +97,7 @@ export default function AppRouter() {
       </Route>
 
       {/* Worker app */}
-      <Route path="/w" element={<RequireAuth><WorkerShell /></RequireAuth>}>
+      <Route path="/w" element={<RequireAuth redirectTo="/pin"><WorkerShell /></RequireAuth>}>
         <Route index element={<Lazy><WorkerHomePage /></Lazy>} />
         <Route path="scan" element={<Lazy><WorkerScanPage /></Lazy>} />
         <Route path="jobs" element={<Lazy><WorkerJobsPage /></Lazy>} />
@@ -101,6 +110,7 @@ export default function AppRouter() {
         <Route path="roll/:id" element={<Lazy><WorkerRollPage /></Lazy>} />
         <Route path="qc" element={<Lazy><WorkerQcPage /></Lazy>} />
         <Route path="dispatch/:id" element={<Lazy><WorkerDispatchPage /></Lazy>} />
+        <Route path="me" element={<Lazy><WorkerMePage /></Lazy>} />
       </Route>
 
       {/* Console app */}
@@ -113,6 +123,8 @@ export default function AppRouter() {
         <Route path="orders/:id" element={<Lazy><OrderDetailPage /></Lazy>} />
         <Route path="buyers" element={<Lazy><BuyersPage /></Lazy>} />
         <Route path="buyers/:id" element={<Lazy><BuyerDetailPage /></Lazy>} />
+        <Route path="buyer-portal" element={<Lazy><BuyerPortalPage /></Lazy>} />
+        <Route path="buyer-portal/new" element={<Lazy><BuyerOrderFormPage /></Lazy>} />
         <Route path="inventory" element={<Lazy><InventoryPage /></Lazy>} />
         <Route path="inventory/batches/:id" element={<Lazy><BatchDetailPage /></Lazy>} />
         <Route path="inventory/receive" element={<Lazy><ReceiveYarnPage /></Lazy>} />
@@ -153,7 +165,7 @@ export default function AppRouter() {
       </Route>
 
       <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="*" element={<Lazy><NotFoundPage /></Lazy>} />
     </Routes>
   );
 }

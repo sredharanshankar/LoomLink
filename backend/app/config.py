@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # App
-    app_env: Literal["development", "production"] = "development"
+    app_env: Literal["development", "production", "test"] = "development"
     public_base_url: str = "https://localhost:5173"
     demo_mode: bool = True
     demo_clock_start: str = ""

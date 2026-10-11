@@ -20,10 +20,13 @@ def test_publish_inserts_to_db():
     mock_scalar = MagicMock(return_value=42)
     mock_session.execute.return_value.scalar = mock_scalar
 
-    with patch("app.core.events._dispatch_queue") as mock_q:
+    with patch("app.core.events._dispatch_queue"), \
+         patch("sqlalchemy.event.listens_for", return_value=lambda f: f):
         publish(mock_session, "stock.updated", {"item": "yarn"}, actor_id=None)
 
     assert mock_session.execute.called
-    # The INSERT INTO domain_events call happened
-    call_args = mock_session.execute.call_args_list[0]
-    assert "domain_events" in str(call_args)
+    # First execute call is the INSERT INTO domain_events; verify via params
+    first_call = mock_session.execute.call_args_list[0]
+    params = first_call[0][1] if len(first_call[0]) > 1 else first_call.kwargs.get("params", {})
+    assert "etype" in params
+    assert params["etype"] == "stock.updated"

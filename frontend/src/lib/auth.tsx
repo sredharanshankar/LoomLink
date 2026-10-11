@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthStore>()(
 interface AuthContextValue {
   user: AuthUser | null;
   login: (employeeCode: string, password: string) => Promise<void>;
-  pinLogin: (pin: string) => Promise<void>;
+  pinLogin: (pin: string, employeeCode?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -64,23 +64,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(employee_code: string, password: string) {
-    const data = await api.post<{ access_token: string; user: AuthUser }>(
+    const data = await api.post<{ access_token: string }>(
       "/auth/login",
       { employee_code, password },
       { skipAuth: true } as Parameters<typeof api.post>[2]
     );
     store.setToken(data.access_token);
-    store.setUser(data.user);
+    const user = await api.get<AuthUser>("/auth/me");
+    store.setUser(user);
   }
 
-  async function pinLogin(pin: string) {
-    const data = await api.post<{ access_token: string; user: AuthUser }>(
+  async function pinLogin(pin: string, employeeCode?: string) {
+    const body: Record<string, string> = { pin };
+    if (employeeCode) body.employee_code = employeeCode;
+    const data = await api.post<{ access_token: string }>(
       "/auth/pin-login",
-      { pin },
+      body,
       { skipAuth: true } as Parameters<typeof api.post>[2]
     );
     store.setToken(data.access_token);
-    store.setUser(data.user);
+    const user = await api.get<AuthUser>("/auth/me");
+    store.setUser(user);
   }
 
   async function logout() {

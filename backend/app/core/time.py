@@ -23,8 +23,7 @@ def now() -> _dt.datetime:
         override = _clock_override
 
     if override is not None:
-        elapsed = _dt.datetime.now(_dt.timezone.utc) - _process_start
-        return override + elapsed
+        return override
 
     settings = get_settings()
     if settings.demo_clock_start:

@@ -8,10 +8,7 @@ def kg_to_g(kg: float) -> int:
 
 def g_to_kg_str(g: int) -> str:
     kg = g / 1000
-    if kg == int(kg):
-        return f"{int(kg)} kg"
-    decimals = 3 if (g % 1000) else 0
-    return f"{kg:.{decimals}f} kg"
+    return f"{kg:.3f}"
 
 
 def m_to_cm(m: float) -> int:
@@ -20,8 +17,7 @@ def m_to_cm(m: float) -> int:
 
 def cm_to_m_str(cm: int) -> str:
     m = cm / 100
-    decimals = 2 if (cm % 100) else 0
-    return f"{m:.{decimals}f} m"
+    return f"{m:.2f}"
 
 
 def rupees_to_paise(rupees: float) -> int:
@@ -51,7 +47,7 @@ def paise_to_rupees_str(paise: int) -> str:
     else:
         formatted = s
 
-    return f"{sign}\\u20b9{formatted}.{paisa_part:02d}"
+    return f"{sign}₹{formatted}.{paisa_part:02d}"
 
 
 _ONES = [

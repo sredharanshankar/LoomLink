@@ -21,6 +21,8 @@ export const qk = {
   quality: {
     rolls: (filters?: object) => ["rolls", filters] as const,
     roll: (id: string) => ["rolls", id] as const,
+    queues: () => ["quality-queues"] as const,
+    defectPatterns: () => ["quality-defect-patterns"] as const,
   },
   dispatch: {
     dispatches: (filters?: object) => ["dispatches", filters] as const,

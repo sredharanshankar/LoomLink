@@ -9,14 +9,14 @@ class LoginRequest(BaseModel):
 
 
 class PinLoginRequest(BaseModel):
-    employee_code: str
+    employee_code: str | None = None
     pin: str
 
     @field_validator("pin")
     @classmethod
     def validate_pin(cls, v: str) -> str:
-        if not v.isdigit() or len(v) != 6:
-            raise ValueError("PIN must be exactly 6 digits.")
+        if not v.isdigit() or not (4 <= len(v) <= 6):
+            raise ValueError("PIN must be 4–6 digits.")
         return v
 
 

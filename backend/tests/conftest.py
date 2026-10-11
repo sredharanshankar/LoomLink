@@ -1,5 +1,13 @@
+import os
 import pytest
-from app.core.time import set_clock_override
+
+os.environ.setdefault("APP_ENV", "test")
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://loomlink:loomlink@localhost:5432/loomlink_test")
+
+from app.config import get_settings  # noqa: E402
+get_settings.cache_clear()
+
+from app.core.time import set_clock_override  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

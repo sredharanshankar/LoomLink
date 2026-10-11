@@ -1,116 +1,139 @@
-# LoomLink
+# LoomLink — Intelligent Textile Mill Management
 
-Production-grade textile manufacturing platform for Everest Textile Mills. Covers yarn inventory,
-production scheduling, quality control, dispatch, workforce management, and financial management —
-with Ripple, an in-process forecasting engine that surfaces risks and suggests fixes in real time.
+> Team 45 · Hackathon submission
 
----
-
-## Prerequisites
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (with Docker Compose v2)
-- Git
+LoomLink is a full-stack mill management platform for **Everest Textile Mills** that turns raw sensor and production data into actionable intelligence via the **Ripple** engine — a constraint-aware event propagation and recommendation system.
 
 ---
 
-## Quick start
+## Quick start (demo)
 
 ```bash
-git clone https://github.com/sredharanshankar/LoomLink
-cd loomlink
-cp .env.example .env          # review and adjust if needed
-docker compose up -d --build
-make demo-reset               # create schema + seed demo mill (~15 s)
+# 1. Start all services
+docker compose up -d
+
+# 2. Wait for DB, then seed
+docker compose exec api python -m app.seed.run --reset
+
+# 3. Open browser
+open http://localhost:5173
 ```
 
-Open **https://localhost:5173** (accept the self-signed certificate once).
+**Demo accounts** (see `docs/SEED.md` for full list):
 
-### Demo logins
-
-| Role | Employee Code | Password | PIN |
-|---|---|---|---|
-| Owner | OWN-001 | demo1234 | 100001 |
-| Manager | MGR-001 | demo1234 | 200002 |
-| Storekeeper | STK-001 | demo1234 | 300003 |
-| Operator | OPR-001 | — | 400004 |
-| QC Inspector | QCI-001 | demo1234 | 500005 |
-| Dispatch | DSP-001 | demo1234 | 600006 |
-| Accounts | ACC-001 | demo1234 | 700007 |
-| Buyer | BYR-001 | demo1234 | — |
+| Role | Employee code | Password |
+|---|---|---|
+| Owner | OWN-001 | demo1234 |
+| Manager | MGR-001 | demo1234 |
+| Storekeeper | STK-001 | demo1234 |
+| Operator (PIN) | EMP-001…EMP-012 | PIN 1234 |
 
 ---
 
-## Phone setup
-
-Phones need HTTPS for the camera (QR scanning). On the same LAN:
-
-1. Find your laptop IP: `ipconfig` (Windows) or `ip a` (Linux/macOS)
-2. Open **https://\<LAN-IP\>:5173** on the phone
-3. Accept the certificate warning once
-
-Or use a tunnel: `cloudflared tunnel --url https://localhost:5173`
-
----
-
-## Windows (no `make`)
-
-```powershell
-./scripts/dev.ps1 dev          # start containers
-./scripts/dev.ps1 demo-reset   # seed
-./scripts/dev.ps1 test         # run tests
-./scripts/dev.ps1 lint         # lint
-./scripts/dev.ps1 gen-api      # regenerate types
-```
-
----
-
-## Project structure
+## Architecture
 
 ```
-loomlink/
-├── backend/        Python 3.12, FastAPI, SQLAlchemy 2, Alembic, PostgreSQL 16
-├── frontend/       Vite 5, React 18, TypeScript strict, Tailwind CSS 3.4
-├── docs/           CONTRACT.md (source of truth), RBAC.md, SEED.md, OWNERSHIP.md
-└── scripts/        dev.sh / dev.ps1
+┌──────────────────────────────────────────┐
+│  React 18 + TypeScript + Vite 5          │
+│  TanStack Query · i18next · Tailwind 3.4 │
+└────────────────┬─────────────────────────┘
+                 │ REST + WebSocket
+┌────────────────▼─────────────────────────┐
+│  FastAPI · SQLAlchemy 2 · Alembic        │
+│  Ripple engine (app/ripple/)             │
+│  PDF generator (app/pdf/)                │
+└────────────────┬─────────────────────────┘
+                 │
+┌────────────────▼─────────────────────────┐
+│  PostgreSQL 16                           │
+└──────────────────────────────────────────┘
 ```
 
-See [docs/OWNERSHIP.md](docs/OWNERSHIP.md) for lane assignments.
+### Money, units, time conventions
 
----
-
-## Development commands
-
-```bash
-make dev            # docker compose up -d (db + backend + frontend)
-make down           # stop containers
-make logs           # tail all logs
-make demo-reset     # drop + recreate schema, seed demo data
-make test           # all tests (backend + frontend)
-make test-core      # backend unit tests only
-make lint           # ruff + mypy + eslint + tsc
-make gen-api        # export OpenAPI → docs/openapi.json → frontend/src/lib/api-types.ts
-make migrate        # alembic upgrade head
-make makemigration name=<name>
-```
-
----
-
-## First-time teammate setup
-
-```bash
-make setup          # sets git hooks path + copies .env.example → .env
-```
-
-This wires `.githooks/commit-msg` which strips AI co-author trailers from commits.
-
----
-
-## Troubleshooting
-
-| Symptom | Fix |
+| Concept | Storage |
 |---|---|
-| Port 5432 busy | Stop local Postgres or change DATABASE_URL port |
-| Port 5173 busy | Change `ports` in docker-compose.yml |
-| Camera blocked | Must be HTTPS; accept the cert on the phone |
-| Docker WSL memory | Add `[wsl2] memory=4GB` to `%USERPROFILE%\.wslconfig` |
-| `make demo-reset` slow | Normal on first run (pulls images); subsequent runs < 20 s |
+| Money | BIGINT paise (÷100 = ₹) |
+| Yarn | INTEGER grams |
+| Fabric | INTEGER centimetres |
+| Durations | INTEGER minutes |
+| Time | `app.core.time.now()` — supports `DEMO_CLOCK_START` |
+
+---
+
+## Modules
+
+| Module | Route |
+|---|---|
+| Dashboard | `/app/dashboard` |
+| Floor view | `/app/floor` |
+| Orders | `/app/orders` |
+| Inventory | `/app/inventory` |
+| Production | `/app/production` |
+| Quality | `/app/quality` |
+| Dispatch | `/app/dispatch` |
+| Workers | `/app/workers` |
+| Finance | `/app/finance` |
+| **Ripple inbox** | `/app/ripple` |
+| **Leak Meter** | `/app/leak` |
+| Worker app | `/w` (PIN login) |
+| Buyer portal | `/buyer-line` |
+
+---
+
+## Ripple — the intelligence layer
+
+Ripple propagates production events (breakdowns, yarn shortages, QC failures) through the constraint graph and computes:
+
+1. **Order health** — green / amber / red + slack minutes
+2. **At-risk value** — estimated penalty + idle cost if nothing changes
+3. **Ranked fixes** — machine reassignment, overtime, split runs
+4. **Promise Date** — earliest confirmed delivery for a new order
+5. **Idle Hunter** — machines sitting idle that could absorb queued work
+6. **Leak Meter** — running tally of idle + rework + waste + overtime cost
+
+---
+
+## Development
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Type check
+npm run typecheck
+
+# Unit tests (backend)
+cd backend && pytest
+
+# E2E tests
+cd frontend && npx playwright test
+```
+
+### Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | `postgresql+psycopg://loomlink:loomlink@db:5432/loomlink` | DB connection |
+| `JWT_SECRET` | (required) | Token signing |
+| `DEMO_CLOCK_START` | (empty = real time) | Override demo clock |
+| `VITE_API_BASE` | `/api/v1` | Frontend API base |
+| `VITE_MOCK_MODULES` | (empty = no mocks) | Comma-separated modules to mock |
+
+---
+
+## Team
+
+| Name | Area | Branch |
+|---|---|---|
+| Sredharan Shankar | Backend · infra · docs | `core/inventory-to-hardening` |
+| Gugan S S | Ripple engine · BoL · Buyer Line | Ripple feature branches |
+| Dilip Dhanasekar | Frontend · UX | `web/c-m1` |

@@ -3,7 +3,9 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_db, require_permission
+from app.core.errors import AppError
 import app.services.master_data as md
+import app.services.orders as ord_svc
 
 router = APIRouter()
 
@@ -57,8 +59,13 @@ def update_buyer(
 
 
 @router.get("/buyers/{id}/outstanding")
-def buyer_outstanding(id: str, user=Depends(require_permission("finance.view"))):
-    raise NotImplementedError
+def buyer_outstanding(
+    id: uuid.UUID,
+    user=Depends(require_permission("finance.view")),
+    db=Depends(get_db),
+):
+    from app.services.finance import get_buyer_outstanding
+    return get_buyer_outstanding(db, id)
 
 
 # ---------------------------------------------------------------------------
@@ -136,52 +143,222 @@ def create_route_template(
 
 
 # ---------------------------------------------------------------------------
-# Orders — implemented in A-M3
+# Orders
 # ---------------------------------------------------------------------------
 
-@router.get("/orders")
-def list_orders(user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
-
-
-@router.post("/orders")
-def create_order(user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
+@router.post("/orders/feasibility")
+def check_feasibility(
+    body: dict,
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    fabric_type_id = uuid.UUID(str(body["fabric_type_id"]))
+    quantity_cm = int(body["quantity_cm"])
+    return ord_svc.feasibility(db, fabric_type_id, quantity_cm)
 
 
 @router.get("/orders/lookup")
-def lookup_orders(user=Depends(require_permission("orders.lookup"))):
-    raise NotImplementedError
+def lookup_orders(
+    q: str = Query(..., min_length=1),
+    user=Depends(require_permission("orders.lookup")),
+    db=Depends(get_db),
+):
+    return {"items": ord_svc.lookup_orders(db, q)}
+
+
+@router.get("/orders")
+def list_orders(
+    status: str | None = Query(None),
+    buyer_id: uuid.UUID | None = Query(None),
+    due_before: str | None = Query(None),
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=200),
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    filters = {
+        "status": status, "buyer_id": buyer_id,
+        "due_before": due_before, "q": q,
+        "page": page, "size": size,
+    }
+    items, total = ord_svc.list_orders(db, filters)
+    return {"items": items, "total": total, "page": page, "size": size}
+
+
+@router.post("/orders", status_code=201)
+def create_order(
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    order = ord_svc.create_order(db, body, user)
+    db.commit()
+    return ord_svc.get_order(db, order.id, user)
 
 
 @router.get("/orders/{id}")
-def get_order(id: str, user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
+def get_order(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    return ord_svc.get_order(db, id, user)
 
 
 @router.patch("/orders/{id}")
-def update_order(id: str, user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
-
-
-@router.post("/orders/feasibility")
-def check_feasibility(user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
+def update_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    result = ord_svc.update_order(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/orders/{id}/confirm")
-def confirm_order(id: str, user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
+def confirm_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    result = ord_svc.confirm_order(db, id, body, user)
+    db.commit()
+    return result
 
 
 @router.post("/orders/{id}/cancel")
-def cancel_order(id: str, user=Depends(require_permission("orders.manage"))):
-    raise NotImplementedError
+def cancel_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    result = ord_svc.cancel_order(db, id, body, user)
+    db.commit()
+    return result
+
+
+@router.post("/orders/{id}/submit")
+def submit_order(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    from sqlalchemy import text
+    from app.core.time import now
+    row = db.execute(text("SELECT id, status FROM orders WHERE id = :id"), {"id": str(id)}).fetchone()
+    if not row:
+        raise AppError("NOT_FOUND", f"Order {id} not found.")
+    if row.status != "draft":
+        raise AppError("INVALID_STATE", f"Order status is '{row.status}', not draft.")
+    db.execute(
+        text("UPDATE orders SET status = 'pending_approval', updated_at = :now WHERE id = :id"),
+        {"id": str(id), "now": now()},
+    )
+    db.commit()
+    return {"id": str(id), "status": "pending_approval"}
+
+
+@router.post("/orders/{id}/approve")
+def approve_order(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    from sqlalchemy import text
+    from app.core.time import now
+    row = db.execute(text("SELECT id, status FROM orders WHERE id = :id"), {"id": str(id)}).fetchone()
+    if not row:
+        raise AppError("NOT_FOUND", f"Order {id} not found.")
+    if row.status != "pending_approval":
+        raise AppError("INVALID_STATE", f"Order status is '{row.status}', not pending_approval.")
+    db.execute(
+        text("UPDATE orders SET status = 'confirmed', updated_at = :now WHERE id = :id"),
+        {"id": str(id), "now": now()},
+    )
+    db.commit()
+    return {"id": str(id), "status": "confirmed"}
+
+
+@router.post("/orders/{id}/reject")
+def reject_order(
+    id: uuid.UUID,
+    body: dict,
+    user=Depends(require_permission("orders.manage")),
+    db=Depends(get_db),
+):
+    from sqlalchemy import text
+    from app.core.time import now
+    row = db.execute(text("SELECT id, status FROM orders WHERE id = :id"), {"id": str(id)}).fetchone()
+    if not row:
+        raise AppError("NOT_FOUND", f"Order {id} not found.")
+    if row.status != "pending_approval":
+        raise AppError("INVALID_STATE", f"Order status is '{row.status}', not pending_approval.")
+    db.execute(
+        text("UPDATE orders SET status = 'cancelled', updated_at = :now WHERE id = :id"),
+        {"id": str(id), "now": now()},
+    )
+    db.commit()
+    return {"id": str(id), "status": "cancelled", "reason": body.get("reason", "")}
 
 
 @router.get("/orders/{id}/timeline")
-def order_timeline(id: str, user=Depends(require_permission("orders.view"))):
-    raise NotImplementedError
+def order_timeline(
+    id: uuid.UUID,
+    user=Depends(require_permission("orders.view")),
+    db=Depends(get_db),
+):
+    return ord_svc.get_timeline(db, id)
+
+
+# ---------------------------------------------------------------------------
+# Public buyer tracking (no auth required)
+# ---------------------------------------------------------------------------
+
+@router.get("/orders/track/{token}")
+def track_order(token: str, db=Depends(get_db)):
+    from sqlalchemy import text
+    row = db.execute(text("""
+        SELECT o.code, o.status, o.quantity_cm, o.due_date, o.promised_date,
+               o.updated_at, o.created_at,
+               b.name AS buyer_name,
+               ft.name AS fabric_type_name,
+               ft.colour AS fabric_colour
+        FROM orders o
+        JOIN buyers b ON b.id = o.buyer_id
+        JOIN fabric_types ft ON ft.id = o.fabric_type_id
+        WHERE o.tracking_token = :tok
+    """), {"tok": token}).fetchone()
+    if not row:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Order not found")
+    # Count rolls ready (passed QC) — rolls.order_id links directly to orders
+    rolls = db.execute(text("""
+        SELECT COUNT(*) FROM rolls r
+        JOIN orders o ON o.id = r.order_id
+        WHERE o.tracking_token = :tok AND r.status = 'passed'
+    """), {"tok": token}).scalar() or 0
+    metres_ready = db.execute(text("""
+        SELECT COALESCE(SUM(r.length_cm), 0) FROM rolls r
+        JOIN orders o ON o.id = r.order_id
+        WHERE o.tracking_token = :tok AND r.status = 'passed'
+    """), {"tok": token}).scalar() or 0
+    ship_date = row.promised_date or row.due_date
+    return {
+        "order_number": row.code,
+        "status": row.status,
+        "fabric_type": row.fabric_type_name,
+        "fabric_colour": row.fabric_colour,
+        "quantity_m": round(row.quantity_cm / 100, 1),
+        "metres_ready": round(metres_ready / 100, 1),
+        "rolls_passed": rolls,
+        "expected_ship_date": ship_date.isoformat() if ship_date else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else row.created_at.isoformat(),
+    }
 
 
 # ---------------------------------------------------------------------------
