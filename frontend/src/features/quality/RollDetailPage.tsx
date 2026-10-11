@@ -6,22 +6,27 @@ import PageHeader from "../../components/ui/PageHeader";
 import Badge from "../../components/ui/Badge";
 import Skeleton from "../../components/ui/Skeleton";
 
-interface Defect {
-  type: string;
-  position_cm: number;
-  severity: string;
+interface Inspection {
+  id: string;
+  decision: string;
+  measured_length_cm: number | null;
+  notes: string | null;
+  created_at: string;
+  inspector_id: string | null;
 }
 
 interface Roll {
   id: string;
   code: string;
-  order_code: string;
+  order_id: string;
+  order_code?: string;
   length_cm: number;
   status: string;
-  grade: string;
-  defects: Defect[];
-  inspected_at: string | null;
-  inspected_by: string | null;
+  grade?: string;
+  defects?: Defect[];
+  inspections?: Inspection[];
+  inspected_at?: string | null;
+  inspected_by?: string | null;
 }
 
 const GRADE_COLORS: Record<string, "green" | "yellow" | "red" | "gray"> = {
@@ -63,7 +68,7 @@ export default function RollDetailPage() {
         <dl className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
           <div>
             <dt className="text-sm text-gray-500">Order</dt>
-            <dd className="text-sm font-medium text-gray-900">{roll.order_code}</dd>
+            <dd className="text-sm font-medium text-gray-900">{roll.order_code ?? roll.order_id}</dd>
           </div>
           <div>
             <dt className="text-sm text-gray-500">Length</dt>
@@ -75,12 +80,14 @@ export default function RollDetailPage() {
               <Badge color="gray">{formatStatus(roll.status)}</Badge>
             </dd>
           </div>
-          <div>
-            <dt className="text-sm text-gray-500">Grade</dt>
-            <dd className="text-sm">
-              <Badge color={GRADE_COLORS[roll.grade] ?? "gray"}>{roll.grade}</Badge>
-            </dd>
-          </div>
+          {roll.grade && (
+            <div>
+              <dt className="text-sm text-gray-500">Grade</dt>
+              <dd className="text-sm">
+                <Badge color={GRADE_COLORS[roll.grade] ?? "gray"}>{roll.grade}</Badge>
+              </dd>
+            </div>
+          )}
           {roll.inspected_at && (
             <div>
               <dt className="text-sm text-gray-500">Inspected At</dt>
@@ -97,31 +104,35 @@ export default function RollDetailPage() {
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Defects</h2>
-        {roll.defects.length === 0 ? (
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Inspections</h2>
+        {(roll.inspections ?? []).length === 0 ? (
           <div className="bg-green-50 text-green-700 rounded-lg border border-green-200 p-4">
-            No defects found.
+            No inspections recorded yet.
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Severity</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Decision</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Measured Length</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {roll.defects.map((defect, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3 text-sm text-gray-700">{defect.type}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{formatCm(defect.position_cm)}</td>
+                {(roll.inspections ?? []).map((insp) => (
+                  <tr key={insp.id}>
                     <td className="px-4 py-3 text-sm">
-                      <Badge color={defect.severity === "major" ? "red" : defect.severity === "minor" ? "yellow" : "gray"}>
-                        {formatStatus(defect.severity)}
+                      <Badge color={insp.decision === "pass" ? "green" : insp.decision === "rework" ? "yellow" : "red"}>
+                        {formatStatus(insp.decision)}
                       </Badge>
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {insp.measured_length_cm != null ? formatCm(insp.measured_length_cm) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{insp.notes ?? "—"}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{formatDateTime(insp.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

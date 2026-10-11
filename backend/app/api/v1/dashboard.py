@@ -48,15 +48,17 @@ def buyer_orders(
     db=Depends(get_db),
 ):
     from sqlalchemy import text
-    bid = str(user.buyer_id) if hasattr(user, "buyer_id") else str(user.id)
+    bid = user.get("buyer_id") or user.get("id")
+    if not bid:
+        return {"items": []}
     rows = db.execute(
         text(
-            "SELECT o.id, o.code, o.status, o.quantity_cm, o.dispatch_by, o.tracking_token "
+            "SELECT o.id, o.code, o.status, o.quantity_cm, o.tracking_token "
             "FROM orders o "
-            "WHERE o.buyer_id = :bid AND o.deleted_at IS NULL "
+            "WHERE o.buyer_id = :bid "
             "ORDER BY o.created_at DESC"
         ),
-        {"bid": bid},
+        {"bid": str(bid)},
     ).fetchall()
     return {"items": [dict(r._mapping) for r in rows]}
 
@@ -66,30 +68,31 @@ def list_notifications(
     unread_only: bool = Query(False),
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
-    user=Depends(require_permission("")),
+    user=Depends(require_permission("orders.view")),
     db=Depends(get_db),
 ):
-    items, total = notif_svc.list_notifications(db, user.id, unread_only=unread_only, page=page, size=size)
-    unread = notif_svc.get_unread_count(db, user.id)
+    uid = user.get("id")
+    items, total = notif_svc.list_notifications(db, uid, unread_only=unread_only, page=page, size=size)
+    unread = notif_svc.get_unread_count(db, uid)
     return {"items": items, "total": total, "unread_count": unread, "page": page, "size": size}
 
 
 @router.post("/notifications/{id}/read", status_code=200)
 def mark_read(
     id: uuid.UUID,
-    user=Depends(require_permission("")),
+    user=Depends(require_permission("orders.view")),
     db=Depends(get_db),
 ):
-    notif_svc.mark_read(db, user.id, id)
+    notif_svc.mark_read(db, user.get("id"), id)
     db.commit()
     return {"ok": True}
 
 
 @router.post("/notifications/read-all", status_code=200)
 def read_all(
-    user=Depends(require_permission("")),
+    user=Depends(require_permission("orders.view")),
     db=Depends(get_db),
 ):
-    notif_svc.mark_all_read(db, user.id)
+    notif_svc.mark_all_read(db, user.get("id"))
     db.commit()
     return {"ok": True}

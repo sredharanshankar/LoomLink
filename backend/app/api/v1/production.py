@@ -47,9 +47,26 @@ def get_machine(
     user=Depends(require_permission("production.view")),
     db=Depends(get_db),
 ):
+    from sqlalchemy import text
     machine = md.get_machine(db, id)
     caps = md.get_machine_capabilities(db, id)
-    return _machine_out(machine, caps)
+    current_job = None
+    if machine.current_job_id:
+        row = db.execute(text("""
+            SELECT j.id, j.code, j.stage, o.code AS order_code,
+                   ft.name AS fabric_type, o.quantity_cm
+            FROM jobs j
+            LEFT JOIN orders o ON o.id = j.order_id
+            LEFT JOIN fabric_types ft ON ft.id = o.fabric_type_id
+            WHERE j.id = :jid
+        """), {"jid": str(machine.current_job_id)}).fetchone()
+        if row:
+            current_job = {
+                "id": str(row.id), "code": row.code, "stage": row.stage,
+                "order_code": row.order_code, "fabric_type": row.fabric_type,
+                "quantity_cm": row.quantity_cm,
+            }
+    return _machine_out(machine, caps, current_job)
 
 
 @router.patch("/machines/{id}")
@@ -292,7 +309,7 @@ def machine_maintenance(
 # serializers
 # ---------------------------------------------------------------------------
 
-def _machine_out(m, caps) -> dict:
+def _machine_out(m, caps, current_job: dict | None = None) -> dict:
     return {
         "id": str(m.id),
         "code": m.code,
@@ -301,7 +318,9 @@ def _machine_out(m, caps) -> dict:
         "floor_x": m.floor_x,
         "floor_y": m.floor_y,
         "status": m.status,
+        "status_changed_at": m.status_changed_at.isoformat() if getattr(m, "status_changed_at", None) else None,
         "current_job_id": str(m.current_job_id) if m.current_job_id else None,
+        "current_job": current_job,
         "fabric_type_ids": [str(c.fabric_type_id) for c in caps],
         "created_at": m.created_at.isoformat(),
     }

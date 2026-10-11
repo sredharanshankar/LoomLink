@@ -27,16 +27,27 @@ interface RollsResponse {
   total: number;
 }
 
+interface QueueStatus {
+  count: number;
+  items: unknown[];
+}
 interface QueueData {
-  pending_inspection: number;
-  in_rework: number;
-  passed_today: number;
-  rejected_today: number;
+  pending_qc: QueueStatus;
+  rework: QueueStatus;
+  passed: QueueStatus;
+  rejected: QueueStatus;
 }
 
-interface DefectPatternsResponse {
-  patterns: { defect_type: string; count: number; percentage: number }[];
+interface DefectPattern {
+  dimension: string;
+  ref_id: string;
+  ref_label: string;
+  defect_count: number;
+  inspection_count: number;
+  rate: number;
+  mill_avg_rate: number;
 }
+type DefectPatternsResponse = DefectPattern[];
 
 const GRADE_COLOR: Record<string, "green" | "yellow" | "orange" | "red" | "gray"> = {
   A: "green",
@@ -62,7 +73,7 @@ export default function QualityPage() {
 
   const { data: defects } = useQuery({
     queryKey: qk.quality.defectPatterns(),
-    queryFn: () => api.get<DefectPatternsResponse>("/quality/defect-patterns"),
+    queryFn: () => api.get<DefectPatternsResponse>("/quality/defect-patterns") as Promise<DefectPatternsResponse>,
   });
 
   return (
@@ -74,30 +85,30 @@ export default function QualityPage() {
         <Skeleton rows={2} className="max-w-sm" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiTile label="Pending Inspection" value={queues?.pending_inspection ?? "-"} />
-          <KpiTile label="In Rework" value={queues?.in_rework ?? "-"} />
+          <KpiTile label="Pending Inspection" value={queues?.pending_qc?.count ?? "-"} />
+          <KpiTile label="In Rework" value={queues?.rework?.count ?? "-"} />
           <KpiTile
-            label="Passed Today"
-            value={queues?.passed_today ?? "-"}
-            trend={queues?.passed_today ? "up" : "neutral"}
+            label="Passed"
+            value={queues?.passed?.count ?? "-"}
+            trend={queues?.passed?.count ? "up" : "neutral"}
           />
           <KpiTile
-            label="Rejected Today"
-            value={queues?.rejected_today ?? "-"}
-            trend={queues?.rejected_today ? "down" : "neutral"}
+            label="Rejected"
+            value={queues?.rejected?.count ?? "-"}
+            trend={queues?.rejected?.count ? "down" : "neutral"}
           />
         </div>
       )}
 
       {/* Defect patterns summary */}
-      {defects?.patterns && defects.patterns.length > 0 && (
+      {defects && Array.isArray(defects) && defects.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Top Defect Patterns</h3>
           <div className="flex flex-wrap gap-3">
-            {defects.patterns.map((p) => (
-              <div key={p.defect_type} className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="font-medium">{p.defect_type}</span>
-                <Badge color="gray">{p.count} ({p.percentage.toFixed(1)}%)</Badge>
+            {defects.map((p) => (
+              <div key={p.ref_id} className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="font-medium">{p.ref_label}</span>
+                <Badge color="gray">{p.defect_count} ({(p.rate * 100).toFixed(1)}%)</Badge>
               </div>
             ))}
           </div>
@@ -138,7 +149,9 @@ export default function QualityPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{roll.order_code}</td>
                     <td className="px-4 py-3 text-sm">
-                      <Badge color={gradeColor(roll.grade)}>{roll.grade}</Badge>
+                      {roll.grade
+                        ? <Badge color={gradeColor(roll.grade)}>{roll.grade}</Badge>
+                        : <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{formatCm(roll.length_cm)}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{roll.status}</td>

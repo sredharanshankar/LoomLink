@@ -38,7 +38,7 @@ PERMISSIONS: dict[str, set[str]] = {
         "orders.view", "orders.manage", "orders.lookup",
         "production.view", "production.plan", "production.operate",
         "machines.manage",
-        "rolls.create", "quality.view", "rolls.passport",
+        "rolls.create", "quality.view", "quality.inspect", "rolls.passport",
         "dispatch.view",
         "workers.view", "workers.manage",
         "attendance.self", "attendance.view", "attendance.manage",

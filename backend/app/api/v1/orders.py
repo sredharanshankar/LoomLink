@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_db, require_permission
+from app.core.errors import AppError
 import app.services.master_data as md
 import app.services.orders as ord_svc
 
