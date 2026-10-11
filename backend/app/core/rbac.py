@@ -106,6 +106,7 @@ PERMISSIONS: dict[str, set[str]] = {
     },
     "buyer": {
         "buyer.own",
+        "orders.view",
     },
 }
 

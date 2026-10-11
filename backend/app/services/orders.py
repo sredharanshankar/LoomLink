@@ -257,11 +257,20 @@ def get_order(session: Session, order_id: uuid.UUID, user: dict | None = None) -
             for i in inv_rows
         ]
 
+    buyer_row = session.execute(text(
+        "SELECT name FROM buyers WHERE id = :bid"
+    ), {"bid": order.buyer_id}).fetchone()
+    fab_row = session.execute(text(
+        "SELECT name FROM fabric_types WHERE id = :fid"
+    ), {"fid": order.fabric_type_id}).fetchone()
+
     return {
         "id": str(order.id),
         "code": order.code,
         "buyer_id": str(order.buyer_id),
+        "buyer_name": buyer_row.name if buyer_row else "",
         "fabric_type_id": str(order.fabric_type_id),
+        "fabric_type_name": fab_row.name if fab_row else "",
         "quantity_cm": order.quantity_cm,
         "price_paise_per_m": order.price_paise_per_m,
         "due_date": order.due_date.isoformat(),

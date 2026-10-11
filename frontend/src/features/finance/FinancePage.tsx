@@ -7,16 +7,19 @@ import KpiTile from "../../components/ui/KpiTile";
 import Skeleton from "../../components/ui/Skeleton";
 
 interface Receivables {
-  total_paise: number;
-  items: { buyer_name: string; amount_paise: number; days_overdue: number }[];
+  total_outstanding_paise: number;
+  total_overdue_paise: number;
+  by_buyer: { buyer_name: string; outstanding_paise: number; overdue_paise: number; invoice_count: number }[];
 }
 
 interface MonthClose {
-  revenue_paise: number;
-  material_cost_paise: number;
-  wages_paise: number;
+  revenue_subtotal_paise: number;
+  revenue_total_paise: number;
+  yarn_cost_paise: number;
   expenses_paise: number;
-  profit_paise: number;
+  payroll_paise: number;
+  total_cost_paise: number;
+  gross_profit_paise: number;
 }
 
 const SUB_PAGES = [
@@ -51,13 +54,10 @@ export default function FinancePage() {
         <Skeleton rows={4} className="max-w-sm" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiTile label="Revenue" value={mc ? formatPaise(mc.revenue_paise) : "-"} />
-          <KpiTile
-            label="Costs"
-            value={mc ? formatPaise(mc.material_cost_paise + mc.wages_paise + mc.expenses_paise) : "-"}
-          />
-          <KpiTile label="Profit" value={mc ? formatPaise(mc.profit_paise) : "-"} />
-          <KpiTile label="Receivables" value={receivables ? formatPaise(receivables.total_paise) : "-"} />
+          <KpiTile label="Revenue" value={mc ? formatPaise(mc.revenue_subtotal_paise) : "-"} />
+          <KpiTile label="Costs" value={mc ? formatPaise(mc.total_cost_paise) : "-"} />
+          <KpiTile label="Profit" value={mc ? formatPaise(mc.gross_profit_paise) : "-"} />
+          <KpiTile label="Receivables" value={receivables ? formatPaise(receivables.total_outstanding_paise) : "-"} />
         </div>
       )}
 
@@ -76,7 +76,7 @@ export default function FinancePage() {
         </div>
       </section>
 
-      {receivables && receivables.items?.length > 0 && (
+      {receivables && receivables.by_buyer?.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Outstanding Receivables</h2>
           <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
@@ -84,16 +84,18 @@ export default function FinancePage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-500">Buyer</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Amount</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">Days Overdue</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Outstanding</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Overdue</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-500">Invoices</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {(receivables.items ?? []).map((r) => (
+                {receivables.by_buyer.map((r) => (
                   <tr key={r.buyer_name}>
                     <td className="px-4 py-3 text-gray-900">{r.buyer_name}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatPaise(r.amount_paise)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{r.days_overdue}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatPaise(r.outstanding_paise)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatPaise(r.overdue_paise)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{r.invoice_count}</td>
                   </tr>
                 ))}
               </tbody>

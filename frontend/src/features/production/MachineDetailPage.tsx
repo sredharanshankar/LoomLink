@@ -26,7 +26,7 @@ interface Job {
   code: string;
   order_code: string;
   status: string;
-  quantity_cm: number;
+  planned_qty: number;
   created_at: string;
 }
 
@@ -99,7 +99,7 @@ export default function MachineDetailPage() {
         )}
       </div>
 
-      {machine.speeds.length > 0 && (
+      {(machine.speeds ?? []).length > 0 && (
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Speeds</h2>
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -111,7 +111,7 @@ export default function MachineDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {machine.speeds.map((speed) => (
+                {(machine.speeds ?? []).map((speed) => (
                   <tr key={speed.fabric_type}>
                     <td className="px-4 py-3 text-sm text-gray-700">{speed.fabric_type}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{speed.metres_per_hour}</td>
@@ -138,18 +138,18 @@ export default function MachineDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {jobs.items.map((job) => (
+                {(jobs.items ?? []).map((job) => (
                   <tr key={job.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{job.code}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{job.order_code}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{formatCm(job.quantity_cm)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{formatCm(job.planned_qty)}</td>
                     <td className="px-4 py-3 text-sm">
                       <Badge color="gray">{formatStatus(job.status)}</Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(job.created_at)}</td>
                   </tr>
                 ))}
-                {jobs.items.length === 0 && (
+                {(jobs.items ?? []).length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
                       No jobs found for this machine.
