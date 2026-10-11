@@ -1,31 +1,53 @@
 import { clsx } from "clsx";
 
-type Color = "gray" | "green" | "yellow" | "red" | "blue" | "purple" | "orange";
+export type BadgeColor =
+  | "gray" | "green" | "yellow" | "amber" | "red" | "blue" | "purple" | "orange" | "teal" | "brand";
 
-const COLORS: Record<Color, string> = {
-  gray:   "bg-gray-100   text-gray-700   dark:bg-gray-800   dark:text-gray-300",
-  green:  "bg-green-100  text-green-700  dark:bg-green-900/50  dark:text-green-400",
-  yellow: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
-  red:    "bg-red-100    text-red-700    dark:bg-red-900/40    dark:text-red-400",
-  blue:   "bg-blue-100   text-blue-700   dark:bg-blue-900/40   dark:text-blue-400",
-  purple: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400",
-  orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+const COLORS: Record<BadgeColor, { pill: string; dot: string }> = {
+  gray:   { pill: "bg-gray-100 text-gray-700 ring-gray-500/15",         dot: "bg-gray-400" },
+  green:  { pill: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", dot: "bg-emerald-500" },
+  yellow: { pill: "bg-amber-50 text-amber-800 ring-amber-600/25",       dot: "bg-amber-500" },
+  amber:  { pill: "bg-amber-50 text-amber-800 ring-amber-600/25",       dot: "bg-amber-500" },
+  red:    { pill: "bg-red-50 text-red-700 ring-red-600/20",             dot: "bg-red-500" },
+  blue:   { pill: "bg-sky-50 text-sky-700 ring-sky-600/20",             dot: "bg-sky-500" },
+  purple: { pill: "bg-violet-50 text-violet-700 ring-violet-600/20",    dot: "bg-violet-500" },
+  orange: { pill: "bg-orange-50 text-orange-700 ring-orange-600/20",    dot: "bg-orange-500" },
+  teal:   { pill: "bg-teal-50 text-teal-700 ring-teal-600/20",          dot: "bg-teal-500" },
+  brand:  { pill: "bg-brand-50 text-brand-700 ring-brand-600/20",       dot: "bg-brand-500" },
 };
 
 interface BadgeProps {
-  color?: Color;
+  color?: BadgeColor;
+  dot?: boolean;
+  pulse?: boolean;
   children: React.ReactNode;
   className?: string;
 }
 
-export default function Badge({ color = "gray", children, className }: BadgeProps) {
+const ACRONYMS = /\b(qc|po|gst|id)\b/gi;
+
+function humanize(text: string) {
+  const s = text.replace(/_/g, " ").replace(ACRONYMS, (m) => m.toUpperCase());
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export default function Badge({ color = "gray", dot = true, pulse, children, className }: BadgeProps) {
+  const c = COLORS[color] ?? COLORS.gray;
   return (
-    <span className={clsx(
-      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-      COLORS[color],
-      className
-    )}>
-      {children}
+    <span
+      className={clsx(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+        c.pill,
+        className,
+      )}
+    >
+      {dot && (
+        <span className="relative flex h-1.5 w-1.5">
+          {pulse && <span className={clsx("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", c.dot)} />}
+          <span className={clsx("relative inline-flex h-1.5 w-1.5 rounded-full", c.dot)} />
+        </span>
+      )}
+      {typeof children === "string" ? humanize(children) : children}
     </span>
   );
 }

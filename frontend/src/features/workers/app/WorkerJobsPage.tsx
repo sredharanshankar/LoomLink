@@ -114,7 +114,7 @@ function JobCard({ job }: { job: Job }) {
         <>
           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
             <div
-              className="bg-blue-600 h-1.5 rounded-full"
+              className="bg-brand-600 h-1.5 rounded-full"
               style={{ width: `${Math.min(pct, 100)}%` }}
             />
           </div>

@@ -86,7 +86,7 @@ export default function WorkerDispatchPage() {
             onKeyDown={(e) => e.key === "Enter" && rollCode && scanMutation.mutate(rollCode)}
           />
           <button
-            className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium active:bg-blue-700 disabled:opacity-50"
+            className="bg-brand-600 text-white rounded-lg px-4 py-2 text-sm font-medium active:bg-brand-700 disabled:opacity-50"
             disabled={!rollCode || scanMutation.isPending}
             onClick={() => scanMutation.mutate(rollCode)}
           >

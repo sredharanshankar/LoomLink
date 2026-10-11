@@ -95,7 +95,7 @@ export default function WorkerJobPage() {
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
           <div
-            className="bg-blue-600 h-3 rounded-full transition-all"
+            className="bg-brand-600 h-3 rounded-full transition-all"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -117,7 +117,7 @@ export default function WorkerJobPage() {
             onChange={(e) => setMetres(e.target.value)}
           />
           <button
-            className="w-full bg-blue-600 text-white rounded-lg py-4 text-lg font-semibold active:bg-blue-700 disabled:opacity-50"
+            className="w-full bg-brand-600 text-white rounded-lg py-4 text-lg font-semibold active:bg-brand-700 disabled:opacity-50"
             disabled={!metres || progressMutation.isPending}
             onClick={() => progressMutation.mutate(Math.round(parseFloat(metres) * 100))}
           >

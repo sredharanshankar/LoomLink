@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { qk } from "../../lib/query-keys";
@@ -286,8 +286,8 @@ export default function ProductionPage() {
                     : 0;
                   const isLogging = logJobId === j.id;
                   return (
-                    <>
-                      <tr key={j.id} className="hover:bg-gray-50">
+                    <Fragment key={j.id}>
+                      <tr className="hover:bg-gray-50">
                         <td className="px-5 py-3 font-mono font-medium text-gray-900">
                           {j.code}
                         </td>
@@ -319,7 +319,7 @@ export default function ProductionPage() {
                                 setLogJobId(isLogging ? null : j.id);
                                 setDeltaMetres("");
                               }}
-                              className="text-xs font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                              className="text-xs font-medium text-brand-600 hover:text-brand-700 whitespace-nowrap"
                             >
                               {isLogging ? "Cancel" : "+ Log Output"}
                             </button>
@@ -338,7 +338,7 @@ export default function ProductionPage() {
                                 placeholder="Metres produced"
                                 value={deltaMetres}
                                 onChange={(e) => setDeltaMetres(e.target.value)}
-                                className="w-36 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-36 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                               />
                               <span className="text-sm text-gray-500">m</span>
                               <button
@@ -347,7 +347,7 @@ export default function ProductionPage() {
                                   const delta_qty = Math.round(parseFloat(deltaMetres) * 100);
                                   if (delta_qty > 0) progressMutation.mutate({ jobId: j.id, delta_qty });
                                 }}
-                                className="rounded-lg px-4 py-1.5 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                className="rounded-lg px-4 py-1.5 text-sm font-medium bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
                               >
                                 {progressMutation.isPending ? "Saving…" : "Save"}
                               </button>
@@ -355,7 +355,7 @@ export default function ProductionPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

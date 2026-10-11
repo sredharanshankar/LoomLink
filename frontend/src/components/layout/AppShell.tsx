@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard, Factory, Package, ShoppingCart,
-  Settings2, Cpu, Shield, Truck, Users, Wallet, Zap,
-  Bell, Search, Sun, Moon, Wifi, WifiOff, RefreshCw,
-  Menu, X, Globe, LogOut, ChevronDown,
+  LayoutDashboard, LayoutGrid, Zap, Package, Truck, ClipboardList, ShoppingBag, Building2,
+  Activity, Cog, ShieldCheck, PackageCheck, Users, CalendarCheck, Banknote, Landmark,
+  CreditCard, Receipt, Wallet, Settings2, UserCog, ScrollText,
+  Bell, Search, Sun, Moon, Wifi, WifiOff, RefreshCw, Menu, X, Globe, LogOut, ChevronDown, Check,
 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { can } from "../../lib/permissions";
@@ -14,6 +14,7 @@ import { useLiveStatus } from "../../lib/live-status";
 import { RippleLiveToaster } from "../../features/ripple/index";
 import { clsx } from "clsx";
 import i18n from "../../lib/i18n";
+import Logo from "../ui/Logo";
 
 const LANGS = [
   { code: "en", label: "English" },
@@ -36,115 +37,104 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "overview",
     items: [
       { to: "/app/dashboard", key: "dashboard", icon: LayoutDashboard, perm: null },
-      { to: "/app/floor",     key: "floor",     icon: Factory,          perm: "production:read" },
-      { to: "/app/ripple",    key: "ripple",    icon: Zap,              perm: "ripple:read" },
+      { to: "/app/floor",     key: "floor",     icon: LayoutGrid,      perm: "production:read" },
+      { to: "/app/ripple",    key: "ripple",    icon: Zap,             perm: "ripple:read" },
     ],
   },
   {
     label: "inventory",
     items: [
-      { to: "/app/inventory",       key: "inventory",      icon: Package,      perm: "inventory:read" },
-      { to: "/app/suppliers",       key: "suppliers",      icon: Truck,        perm: "inventory:read" },
-      { to: "/app/purchase-orders", key: "purchaseOrders", icon: ShoppingCart, perm: "inventory:read" },
+      { to: "/app/inventory",       key: "inventory",      icon: Package,       perm: "inventory:read" },
+      { to: "/app/suppliers",       key: "suppliers",      icon: Truck,         perm: "inventory:read" },
+      { to: "/app/purchase-orders", key: "purchaseOrders", icon: ClipboardList, perm: "inventory:read" },
     ],
   },
   {
     label: "orders",
     items: [
-      { to: "/app/orders", key: "orders", icon: ShoppingCart, perm: "orders:read" },
-      { to: "/app/buyers", key: "buyers", icon: Users,        perm: "orders:read" },
+      { to: "/app/orders", key: "orders", icon: ShoppingBag, perm: "orders:read" },
+      { to: "/app/buyers", key: "buyers", icon: Building2,   perm: "orders:read" },
     ],
   },
   {
     label: "production",
     items: [
-      { to: "/app/production", key: "production", icon: Cpu,     perm: "production:read" },
-      { to: "/app/machines",   key: "machines",   icon: Factory, perm: "production:read" },
+      { to: "/app/production", key: "production", icon: Activity, perm: "production:read" },
+      { to: "/app/machines",   key: "machines",   icon: Cog,      perm: "production:read" },
     ],
   },
   {
     label: "quality",
-    items: [
-      { to: "/app/quality", key: "quality", icon: Shield, perm: "quality:read" },
-    ],
+    items: [{ to: "/app/quality", key: "quality", icon: ShieldCheck, perm: "quality:read" }],
   },
   {
     label: "dispatch",
-    items: [
-      { to: "/app/dispatch", key: "dispatch", icon: Truck, perm: "dispatch:read" },
-    ],
+    items: [{ to: "/app/dispatch", key: "dispatch", icon: PackageCheck, perm: "dispatch:read" }],
   },
   {
     label: "workers",
     items: [
-      { to: "/app/workers",    key: "workers",    icon: Users,  perm: "workers:read" },
-      { to: "/app/attendance", key: "attendance", icon: Users,  perm: "workers:read" },
-      { to: "/app/payroll",    key: "payroll",    icon: Wallet, perm: "workers:read" },
+      { to: "/app/workers",    key: "workers",    icon: Users,         perm: "workers:read" },
+      { to: "/app/attendance", key: "attendance", icon: CalendarCheck, perm: "workers:read" },
+      { to: "/app/payroll",    key: "payroll",    icon: Banknote,      perm: "finance:read" },
     ],
   },
   {
     label: "finance",
     items: [
-      { to: "/app/finance",   key: "finance",   icon: Wallet, perm: "finance:read" },
-      { to: "/app/payments",  key: "payments",  icon: Wallet, perm: "finance:read" },
-      { to: "/app/supplier-bills", key: "supplierBills", icon: Wallet, perm: "finance:read" },
-      { to: "/app/expenses",  key: "expenses",  icon: Wallet, perm: "finance:read" },
+      { to: "/app/finance",        key: "finance",       icon: Landmark,   perm: "finance:read" },
+      { to: "/app/payments",       key: "payments",      icon: CreditCard, perm: "finance:read" },
+      { to: "/app/supplier-bills", key: "supplierBills", icon: Receipt,    perm: "finance:read" },
+      { to: "/app/expenses",       key: "expenses",      icon: Wallet,     perm: "finance:read" },
     ],
   },
   {
     label: "admin",
     items: [
-      { to: "/app/settings", key: "settings", icon: Settings2, perm: "admin:read" },
-      { to: "/app/users",    key: "users",    icon: Users,     perm: "admin:read" },
-      { to: "/app/audit",    key: "audit",    icon: Shield,    perm: "admin:read" },
+      { to: "/app/settings", key: "settings", icon: Settings2,  perm: "admin:read" },
+      { to: "/app/users",    key: "users",    icon: UserCog,    perm: "admin:read" },
+      { to: "/app/audit",    key: "audit",    icon: ScrollText, perm: "admin:read" },
     ],
   },
 ];
 
+const BUYER_NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  { label: "overview", items: [{ to: "/app/dashboard", key: "dashboard", icon: LayoutDashboard, perm: null }] },
+  { label: "orders", items: [{ to: "/app/buyer-portal", key: "myOrders", icon: ShoppingBag, perm: null }] },
+];
+
 function LiveIndicator() {
   const status = useLiveStatus();
-  if (status === "connected") return (
-    <span className="flex items-center gap-1 text-xs text-green-500 dark:text-green-400">
-      <Wifi className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">Live</span>
-    </span>
-  );
-  if (status === "reconnecting") return (
-    <span className="flex items-center gap-1 text-xs text-amber-500 dark:text-amber-400 animate-pulse">
-      <RefreshCw className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">Reconnecting</span>
-    </span>
-  );
+  const cfg = {
+    connected: { label: "Live", icon: Wifi, cls: "text-emerald-700 bg-emerald-50 ring-emerald-600/20", dot: "bg-emerald-500" },
+    reconnecting: { label: "Reconnecting", icon: RefreshCw, cls: "text-amber-700 bg-amber-50 ring-amber-600/20", dot: "bg-amber-500" },
+  }[status as "connected" | "reconnecting"] ?? {
+    label: "Offline", icon: WifiOff, cls: "text-red-700 bg-red-50 ring-red-600/20", dot: "bg-red-500",
+  };
   return (
-    <span className="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
-      <WifiOff className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">Offline</span>
+    <span className={clsx("hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset", cfg.cls)}>
+      <span className="relative flex h-1.5 w-1.5">
+        {status === "connected" && <span className={clsx("absolute inline-flex h-full w-full animate-ping rounded-full opacity-70", cfg.dot)} />}
+        <span className={clsx("relative inline-flex h-1.5 w-1.5 rounded-full", cfg.dot)} />
+      </span>
+      {cfg.label}
     </span>
   );
 }
+
+const iconBtn =
+  "flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900";
 
 export default function AppShell() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { dark, toggle: toggleDark } = useDarkMode();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
 
-  const isBuyer = user?.role === "buyer";
-
-  const BUYER_NAV_GROUPS: { label: string; items: NavItem[] }[] = [
-    {
-      label: "overview",
-      items: [{ to: "/app/dashboard", key: "dashboard", icon: LayoutDashboard, perm: null }],
-    },
-    {
-      label: "orders",
-      items: [{ to: "/app/buyer-portal", key: "myOrders", icon: ShoppingCart, perm: null }],
-    },
-  ];
-
-  const filteredGroups = isBuyer
+  const filteredGroups = user?.role === "buyer"
     ? BUYER_NAV_GROUPS
     : NAV_GROUPS.map((g) => ({
         ...g,
@@ -154,19 +144,14 @@ export default function AppShell() {
   const initials = user?.full_name
     ? user.full_name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
     : "?";
+  const roleLabel = user?.role?.replace(/_/g, " ");
 
   const sidebarContent = (
     <>
-      {/* Logo */}
-      <div className="h-14 px-4 flex items-center justify-between shrink-0 border-b border-white/[0.07]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center shrink-0 shadow-lg shadow-brand-900/50">
-            <span className="text-white font-bold text-xs leading-none">L</span>
-          </div>
-          <span className="text-[15px] font-semibold tracking-tight text-white">LoomLink</span>
-        </div>
+      <div className="flex h-16 shrink-0 items-center justify-between px-5 text-white">
+        <Logo />
         <button
-          className="md:hidden p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white md:hidden"
           onClick={() => setSidebarOpen(false)}
           aria-label="Close menu"
         >
@@ -174,11 +159,10 @@ export default function AppShell() {
         </button>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto sidebar-scroll py-4 px-3 space-y-5">
+      <nav className="sidebar-scroll flex-1 space-y-6 overflow-y-auto px-3 pb-6 pt-2" aria-label="Main">
         {filteredGroups.map((group) => (
           <div key={group.label}>
-            <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30 select-none">
+            <p className="mb-1.5 select-none px-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-white/35">
               {t(group.label, group.label)}
             </p>
             <div className="space-y-0.5">
@@ -189,15 +173,28 @@ export default function AppShell() {
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
                     clsx(
-                      "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors duration-100",
+                      "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-all duration-150",
                       isActive
-                        ? "bg-white/[0.12] text-white font-semibold shadow-sm"
-                        : "text-white/60 hover:bg-white/[0.06] hover:text-white/90"
+                        ? "bg-white/[0.09] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        : "text-white/60 hover:bg-white/[0.05] hover:text-white",
                     )
                   }
                 >
-                  <item.icon className="h-4 w-4 shrink-0 opacity-90" />
-                  {t(item.key)}
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={clsx(
+                          "absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-indigo-400 transition-opacity",
+                          isActive ? "opacity-100" : "opacity-0",
+                        )}
+                      />
+                      <item.icon
+                        className={clsx("h-[17px] w-[17px] shrink-0", isActive ? "text-indigo-300" : "text-white/45 group-hover:text-white/80")}
+                        strokeWidth={1.9}
+                      />
+                      {t(item.key)}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -205,136 +202,142 @@ export default function AppShell() {
         ))}
       </nav>
 
-      {/* User footer */}
-      <div className="border-t border-white/[0.07] px-3 py-3 shrink-0">
-        <div className="flex items-center gap-2.5 px-1">
-          <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-[11px] font-semibold shrink-0 ring-2 ring-white/10">
+      <div className="shrink-0 border-t border-white/[0.06] p-3">
+        <div className="flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white/[0.04]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-semibold text-white ring-2 ring-white/10">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-white/80 font-medium truncate">{user?.full_name}</p>
-            <p className="text-[10px] text-white/40 capitalize">{user?.role?.replace(/_/g, " ")}</p>
+            <p className="truncate text-[13px] font-medium text-white/90">{user?.full_name}</p>
+            <p className="truncate text-[11px] capitalize text-white/45">{roleLabel}</p>
           </div>
           <button
             onClick={() => logout().then(() => navigate("/login"))}
-            className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            className="rounded-md p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
             aria-label={t("logout")}
+            title={t("logout")}
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
     </>
   );
 
+  const sidebarSurface =
+    "theme-light flex flex-col bg-[#0b0f1e] bg-[radial-gradient(120%_60%_at_0%_0%,rgba(99,102,241,0.18),transparent_60%)]";
+
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#0d1117]">
-      {/* Sidebar desktop */}
-      <aside className="hidden md:flex md:flex-col w-60 bg-brand-900 shrink-0">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      <aside className={clsx("hidden w-[var(--sidebar-width)] shrink-0 md:flex", sidebarSurface)}>
         {sidebarContent}
       </aside>
 
-      {/* Sidebar mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 animate-fade-in bg-black/60 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />
-          <aside className="relative z-50 flex flex-col h-full w-64 bg-brand-900">
+          <aside className={clsx("relative z-50 h-full w-72 animate-fade-in", sidebarSurface)}>
             {sidebarContent}
           </aside>
         </div>
       )}
 
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Top bar */}
-        <header className="h-14 shrink-0 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3 px-4">
-          <button
-            className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 transition-colors"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
-          >
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-gray-200/80 bg-surface/80 px-4 backdrop-blur-xl sm:px-6">
+          <button className={clsx(iconBtn, "md:hidden")} onClick={() => setSidebarOpen(true)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Search */}
-          <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900 px-3 h-9 flex-1 max-w-xs text-sm focus-within:border-brand-400 dark:focus-within:border-brand-500 transition-colors">
-            <Search className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+          <Logo subtitle={false} className="text-gray-900 sm:hidden" />
+
+          <label className="group hidden h-9 max-w-md flex-1 items-center gap-2 sm:flex rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm transition focus-within:border-brand-500 focus-within:bg-surface focus-within:ring-4 focus-within:ring-brand-500/10">
+            <Search className="h-4 w-4 shrink-0 text-gray-400" />
             <input
-              className="flex-1 bg-transparent outline-none text-gray-700 dark:text-gray-300 placeholder:text-gray-400 dark:placeholder:text-gray-600 text-sm"
+              className="min-w-0 flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
               placeholder={`${t("search")}…`}
               aria-label={t("search")}
             />
-            <kbd className="hidden sm:inline text-[10px] text-gray-400 dark:text-gray-600 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 font-mono">/</kbd>
-          </div>
+            <kbd className="hidden rounded border border-gray-200 bg-surface px-1.5 py-0.5 font-mono text-[10px] text-gray-400 sm:inline">/</kbd>
+          </label>
 
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
             <LiveIndicator />
 
-            {/* Language */}
             <div className="relative">
               <button
-                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 onClick={() => setLangOpen((o) => !o)}
                 aria-label="Language"
                 aria-expanded={langOpen}
               >
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline uppercase font-medium text-[11px]">{i18n.language.slice(0, 2)}</span>
+                <Globe className="h-[18px] w-[18px]" />
+                <span className="hidden text-xs font-semibold uppercase sm:inline">{i18n.language.slice(0, 2)}</span>
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
               {langOpen && (
-                <div
-                  className="absolute right-0 mt-1.5 w-36 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg dark:shadow-black/30 z-50 py-1 overflow-hidden"
-                  role="menu"
-                >
-                  {LANGS.map((l) => (
-                    <button
-                      key={l.code}
-                      role="menuitem"
-                      className={clsx(
-                        "w-full text-left px-3 py-2 text-sm transition-colors",
-                        i18n.language === l.code
-                          ? "bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-medium"
-                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      )}
-                      onClick={() => { i18n.changeLanguage(l.code); setLangOpen(false); }}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <button className="fixed inset-0 z-40 cursor-default" aria-hidden="true" tabIndex={-1} onClick={() => setLangOpen(false)} />
+                  <div
+                    className="absolute right-0 z-50 mt-2 w-44 animate-fade-up overflow-hidden rounded-xl border border-gray-200 bg-surface p-1 shadow-pop"
+                    role="menu"
+                  >
+                    {LANGS.map((l) => {
+                      const active = i18n.language.startsWith(l.code);
+                      return (
+                        <button
+                          key={l.code}
+                          role="menuitem"
+                          className={clsx(
+                            "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                            active ? "bg-brand-50 font-medium text-brand-700" : "text-gray-700 hover:bg-gray-50",
+                          )}
+                          onClick={() => { i18n.changeLanguage(l.code); setLangOpen(false); }}
+                        >
+                          {l.label}
+                          {active && <Check className="h-4 w-4" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 
-            {/* Notifications */}
-            <button
-              className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label={t("notifications", "Notifications")}
-            >
-              <Bell className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
+            <button className={clsx(iconBtn, "relative")} aria-label={t("notifications", "Notifications")}>
+              <Bell className="h-[18px] w-[18px]" />
             </button>
 
-            {/* Dark mode toggle */}
             <button
               onClick={toggleDark}
-              className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className={iconBtn}
               aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+              title={dark ? "Light mode" : "Dark mode"}
             >
-              {dark ? <Sun className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} /> : <Moon className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />}
+              {dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
             </button>
 
-            {/* User avatar */}
-            <div className="ml-1 w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-white text-[11px] font-semibold cursor-default ring-2 ring-brand-200 dark:ring-brand-800" title={user?.full_name}>
-              {initials}
+            <div className="ml-1.5 hidden h-6 w-px bg-gray-200 sm:block" />
+
+            <div className="ml-1.5 flex items-center gap-2.5" title={user?.full_name}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-violet-500 text-[11px] font-semibold text-white shadow-sm">
+                {initials}
+              </div>
+              <div className="hidden leading-tight lg:block">
+                <p className="text-[13px] font-medium text-gray-900">{user?.full_name}</p>
+                <p className="text-[11px] capitalize text-gray-500">{roleLabel}</p>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto scrollbar-thin">
-          <Outlet />
+        <main className="scrollbar-thin flex-1 overflow-y-auto">
+          <div key={location.pathname} className="mx-auto w-full max-w-[1440px] animate-fade-up">
+            <Outlet />
+          </div>
         </main>
       </div>
 

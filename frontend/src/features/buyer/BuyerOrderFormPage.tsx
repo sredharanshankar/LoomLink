@@ -89,7 +89,7 @@ export default function BuyerOrderFormPage() {
           <select
             value={fabricTypeId}
             onChange={(e) => setFabricTypeId(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             <option value="">Select a fabric type</option>
             {fabrics?.items.map((f) => (
@@ -109,7 +109,7 @@ export default function BuyerOrderFormPage() {
             value={quantityM}
             onChange={(e) => setQuantityM(e.target.value)}
             placeholder="e.g. 500"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
@@ -120,7 +120,7 @@ export default function BuyerOrderFormPage() {
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             min={new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
@@ -131,7 +131,7 @@ export default function BuyerOrderFormPage() {
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Any special finishing requirements, colour specifications, etc."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
           />
         </div>
 
@@ -139,7 +139,7 @@ export default function BuyerOrderFormPage() {
           <button
             type="submit"
             disabled={mutation.isPending}
-            className="inline-flex items-center justify-center rounded-md font-medium h-10 px-6 text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-md font-medium h-10 px-6 text-sm bg-brand-600 text-white hover:bg-brand-700 transition-colors disabled:opacity-50"
           >
             {mutation.isPending ? "Placing Order…" : "Place Order"}
           </button>

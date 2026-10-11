@@ -1,40 +1,17 @@
-import { clsx } from "clsx";
+import Badge, { type BadgeColor } from "./Badge";
 
-const COLOR: Record<string, string> = {
-  running: "bg-green-100 text-green-800",
-  in_progress: "bg-green-100 text-green-800",
-  confirmed: "bg-blue-100 text-blue-800",
-  in_production: "bg-indigo-100 text-indigo-800",
-  passed: "bg-green-100 text-green-800",
-  green: "bg-green-100 text-green-800",
-  active: "bg-green-100 text-green-800",
-
-  idle: "bg-slate-100 text-slate-700",
-  queued: "bg-slate-100 text-slate-700",
-  draft: "bg-slate-100 text-slate-700",
-  pending_qc: "bg-yellow-100 text-yellow-800",
-  paused: "bg-yellow-100 text-yellow-800",
-  rework: "bg-yellow-100 text-yellow-800",
-  amber: "bg-yellow-100 text-yellow-800",
-  low_stock: "bg-yellow-100 text-yellow-800",
-
-  breakdown: "bg-red-100 text-red-800",
-  rejected: "bg-red-100 text-red-800",
-  cancelled: "bg-red-100 text-red-800",
-  red: "bg-red-100 text-red-800",
-  overdue: "bg-red-100 text-red-800",
-
-  maintenance: "bg-purple-100 text-purple-800",
-  changeover: "bg-orange-100 text-orange-800",
-
-  completed: "bg-teal-100 text-teal-800",
-  dispatched: "bg-teal-100 text-teal-800",
-  closed: "bg-gray-100 text-gray-600",
-  depleted: "bg-gray-100 text-gray-600",
-  quarantined: "bg-orange-100 text-orange-800",
-  exhausted: "bg-gray-100 text-gray-500",
-  offline: "bg-gray-800 text-gray-100",
+const TONE: Record<string, BadgeColor> = {
+  running: "green", in_progress: "green", passed: "green", green: "green", active: "green",
+  confirmed: "blue", in_production: "brand",
+  idle: "gray", queued: "gray", draft: "gray", closed: "gray", depleted: "gray", exhausted: "gray", offline: "gray",
+  pending_qc: "yellow", paused: "yellow", rework: "yellow", amber: "yellow", low_stock: "yellow",
+  breakdown: "red", rejected: "red", cancelled: "red", red: "red", overdue: "red",
+  maintenance: "purple",
+  changeover: "orange", quarantined: "orange",
+  completed: "teal", dispatched: "teal",
 };
+
+const LIVE = new Set(["running", "in_progress", "breakdown"]);
 
 interface Props {
   status: string;
@@ -43,16 +20,10 @@ interface Props {
 }
 
 export default function StatusPill({ status, label, size = "md" }: Props) {
-  const color = COLOR[status ?? ""] ?? "bg-gray-100 text-gray-700";
+  const key = status ?? "";
   return (
-    <span
-      className={clsx(
-        "inline-flex items-center rounded-full font-medium",
-        size === "sm" ? "px-2 py-0.5 text-xs" : "px-2.5 py-0.5 text-sm",
-        color
-      )}
-    >
-      {label ?? (status ?? "unknown").replace(/_/g, " ")}
-    </span>
+    <Badge color={TONE[key] ?? "gray"} pulse={LIVE.has(key)} className={size === "md" ? "text-[13px]" : undefined}>
+      {label ?? (key || "unknown").replace(/_/g, " ")}
+    </Badge>
   );
 }

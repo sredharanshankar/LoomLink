@@ -153,7 +153,7 @@ export default function RollDetailPage() {
                 <select
                   value={decision}
                   onChange={(e) => setDecision(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="pass">Pass</option>
                   <option value="rework">Rework</option>
@@ -169,7 +169,7 @@ export default function RollDetailPage() {
                   value={measuredLength}
                   onChange={(e) => setMeasuredLength(e.target.value)}
                   placeholder={roll.length_cm ? `Expected ${(roll.length_cm / 100).toFixed(2)} m` : "e.g. 50.00"}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
               <div>
@@ -179,14 +179,14 @@ export default function RollDetailPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optional remarks"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
             <button
               type="submit"
               disabled={inspectMutation.isPending}
-              className="inline-flex items-center justify-center rounded-md font-medium h-10 px-5 text-sm bg-blue-700 text-white hover:bg-blue-800 transition-colors disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-md font-medium h-10 px-5 text-sm bg-brand-700 text-white hover:bg-brand-800 transition-colors disabled:opacity-50"
             >
               {inspectMutation.isPending ? "Saving…" : "Submit Inspection"}
             </button>

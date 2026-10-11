@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { clsx } from "clsx";
-import Button from "./Button";
+import { X } from "lucide-react";
 
 interface ModalProps {
   open: boolean;
@@ -25,13 +25,24 @@ export default function Modal({ open, onClose, title, children, size = "md" }: M
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className="absolute inset-0 bg-black/40" role="presentation" onClick={onClose} onKeyDown={(e) => e.key === "Escape" && onClose()} />
-      <div className={clsx("relative bg-white rounded-lg shadow-xl w-full", SIZES[size])}>
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">✕</Button>
+      <div className="absolute inset-0 animate-fade-in bg-black/50 backdrop-blur-[2px]" role="presentation" onClick={onClose} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={clsx("relative w-full animate-fade-up rounded-2xl border border-gray-200 bg-white shadow-pop", SIZES[size])}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <div className="px-6 py-4">{children}</div>
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   );

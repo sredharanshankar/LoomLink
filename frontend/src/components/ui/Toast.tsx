@@ -28,18 +28,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const COLOR: Record<ToastType, string> = {
-    success: "bg-green-700",
-    error: "bg-red-700",
-    warning: "bg-yellow-600",
-    info: "bg-brand-700",
+    success: "bg-emerald-500",
+    error: "bg-red-500",
+    warning: "bg-amber-500",
+    info: "bg-brand-500",
   };
 
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[100] space-y-2">
+      <div className="fixed bottom-4 right-4 z-[100] space-y-2" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={clsx("flex items-center gap-3 px-4 py-3 rounded-lg text-white text-sm shadow-lg", COLOR[t.type])}>
+          <div
+            key={t.id}
+            className="theme-light flex animate-fade-up items-center gap-3 rounded-xl bg-gray-900 py-3 pl-3 pr-4 text-sm text-white shadow-pop"
+          >
+            <span className={clsx("h-8 w-1 rounded-full", COLOR[t.type])} />
             {t.message}
           </div>
         ))}
